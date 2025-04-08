@@ -6,7 +6,7 @@
     <td style="width:50%;"><img src="docs/cover/figure8_3d.png" alt="figure8_3d" style="width:100%;"/></td>
   </tr>
 </table>
-With this package, you can generate random racetracks. If you want to learn more, refer to [Tools](#Tools).
+With this package, you can generate random racetracks. If you want to learn more, refer to [Tools](#tools).
 
 ## Visualizations
 
@@ -66,6 +66,7 @@ The random trajectory examples:
     <td style="width:50%;"><img src="docs/3d_tube/race_uzh_19g_3d.png" alt="race_uzh_19g_3d" style="width:100%;"/></td>
   </tr>
 </table>
+
 ## Tools
 
 1. [RaceGenerator](docs/utils_manual.md#L3)
