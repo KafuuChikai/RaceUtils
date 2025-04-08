@@ -6,6 +6,7 @@
     <td style="width:50%;"><img src="docs/cover/figure8_3d.png" alt="figure8_3d" style="width:100%;"/></td>
   </tr>
 </table>
+
 With this package, you can generate random racetracks. If you want to learn more, refer to [Tools](#tools).
 
 ## Visualizations
