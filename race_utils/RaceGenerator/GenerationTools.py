@@ -1,6 +1,6 @@
 import numpy as np
 from typing import List, Optional, Union, Type
-from run_togt_planner.RaceGenerator.GateShape import (
+from race_utils.RaceGenerator.GateShape import (
     BaseShape,
     SingleBall,
     TrianglePrisma,
@@ -8,7 +8,7 @@ from run_togt_planner.RaceGenerator.GateShape import (
     PentagonPrisma,
     HexagonPrisma,
 )
-from run_togt_planner.RaceGenerator.BaseRaceClass import State, Gate
+from race_utils.RaceGenerator.BaseRaceClass import State, Gate
 from ruamel.yaml.scalarstring import SingleQuotedScalarString
 
 KEYS_TO_QUOTE = ["type", "name"]

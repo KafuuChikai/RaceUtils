@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "race-utils"
+version = "1.0.0"
+description = "This Python package provides utilities for generating and visualizing race tracks."
+authors = ["Xian Wang <xianwang@zju.edu.cn>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/KafuuChikai/RaceUtils.git"
+packages = [
+    { include = "race_utils" }
+]
+
+[tool.poetry.dependencies]
+python = ">=3.8"
+numpy = ">=1.24.0"
+pyyaml = ">=5.4.1"
+"ruamel.yaml" = ">=0.15.100"
+matplotlib = ">=3.3.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

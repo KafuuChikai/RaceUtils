@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap, ListedColormap
 import matplotlib.ticker as ticker
 from matplotlib.transforms import Bbox
-from run_togt_planner.RaceVisualizer.track import plot_track, plot_track_3d
+from race_utils.RaceVisualizer.track import plot_track, plot_track_3d
 from typing import Union, Optional, Tuple
 import yaml
 
