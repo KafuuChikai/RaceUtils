@@ -7,7 +7,20 @@
   </tr>
 </table>
 
-With this package, you can generate random racetracks. If you want to learn more, refer to [Tools](#tools).
+**RaceUtils** is a Python package that provides tools for creating, manipulating, and visualizing drone race tracks. Whether you need predefined professional tracks, randomly generated courses, or custom trajectories, this library offers a comprehensive solution for drone racing simulation and training environments. If you want to learn more, refer to [Tools](#tools).
+
+## Installations
+
+For the latest development version or to contribute:
+
+```bash
+# Clone the repository
+git clone https://github.com/KafuuChikai/RaceUtils.git
+cd RaceUtils
+
+# Install in development mode
+pip install -e .
+```
 
 ## Visualizations
 
