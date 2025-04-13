@@ -11,7 +11,6 @@ import yaml
 import os
 import warnings
 
-ROOTPATH = os.path.abspath(__file__).split("Run-TOGT-Planner/", 1)[0]
 
 # plot settings
 matplotlib.rc("font", **{"size": 26})
@@ -43,13 +42,6 @@ class RacePlotter:
         self.v_x = data_ocp["v_x"]
         self.v_y = data_ocp["v_y"]
         self.v_z = data_ocp["v_z"]
-        self.w_x = data_ocp["w_x"]
-        self.w_y = data_ocp["w_y"]
-        self.w_z = data_ocp["w_z"]
-        self.u_1 = data_ocp["u_1"]
-        self.u_2 = data_ocp["u_2"]
-        self.u_3 = data_ocp["u_3"]
-        self.u_4 = data_ocp["u_4"]
 
         ts = np.linspace(self.t[0], self.t[-1], 5000)
         ps = np.array(
@@ -132,8 +124,6 @@ class RacePlotter:
             raise ValueError("wpt_path is not provided.")
         with open(self.wpt_path, "r") as file:
             wpt_data = yaml.safe_load(file)
-        with open(self.track_file, "r") as file:
-            track_data = yaml.safe_load(file)
 
         wps = np.array([wpt_data["waypoints"]]).reshape(-1, 3)
         wps_t = np.array([wpt_data["timestamps"]]).flatten()
@@ -230,11 +220,8 @@ class RacePlotter:
         plt.grid()
 
         if save_fig:
-            save_path = (
-                os.fspath(save_path)
-                if save_path is not None
-                else os.path.join(ROOTPATH, "Run-TOGT-Planner/resources/figure/")
-            )
+            if save_path is None:
+                raise ValueError("save_path is not provided.")
             os.makedirs(save_path, exist_ok=True)
             fig_name = (fig_name + ".png") if fig_name is not None else "togt_traj.png"
             plt.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches="tight")
@@ -375,11 +362,8 @@ class RacePlotter:
         plt.grid()
 
         if save_fig:
-            save_path = (
-                os.fspath(save_path)
-                if save_path is not None
-                else os.path.join(ROOTPATH, "Run-TOGT-Planner/resources/figure/")
-            )
+            if save_path is None:
+                raise ValueError("save_path is not provided.")
             os.makedirs(save_path, exist_ok=True)
             fig_name = (fig_name + ".png") if fig_name is not None else "togt_traj.png"
             plt.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches="tight")
