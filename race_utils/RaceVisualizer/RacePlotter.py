@@ -55,7 +55,7 @@ class RacePlotter:
             [np.interp(ts, self.t, self.v_x), np.interp(ts, self.t, self.v_y), np.interp(ts, self.t, self.v_z)]
         ).T
         vs = np.linalg.norm(vs, axis=1)
-        v0, v1 = (np.amin(vs) + 2 * np.amax(vs)) / 3, np.amax(vs)
+        v0, v1 = (3 * np.amin(vs) + np.amax(vs)) / 4, np.amax(vs)
         vt = np.minimum(np.maximum(vs, v0), v1)
 
         self.ts = ts

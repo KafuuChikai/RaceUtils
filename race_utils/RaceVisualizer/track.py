@@ -21,7 +21,7 @@ def rpy_to_rotation_matrix(rpy):
 
 
 def plot_track(ax, track_file, set_radius=None, set_width=None, set_height=None, set_margin=0):
-    track = track_file if isinstance(track_file, RaceTrack) else yaml.safe_load(open(track_file).read())
+    track = track_file.to_dict() if isinstance(track_file, RaceTrack) else yaml.safe_load(open(track_file).read())
 
     for g in track["orders"]:
         g = track[g]
@@ -126,7 +126,7 @@ def plot_track_3d(ax, track_file, set_radius=None, set_width=None, set_height=No
     if color is None:
         color = "r"
 
-    track = track_file if isinstance(track_file, RaceTrack) else yaml.safe_load(open(track_file).read())
+    track = track_file.to_dict() if isinstance(track_file, RaceTrack) else yaml.safe_load(open(track_file).read())
 
     for g in track["orders"]:
         g = track[g]
