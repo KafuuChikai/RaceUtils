@@ -122,7 +122,7 @@ def plot_track(ax, track_file, set_radius=None, set_width=None, set_height=None,
             raise ValueError("Unrecognized gate: " + g["type"])
 
 
-def plot_track_3d(ax, track_file, set_radius=None, set_width=None, set_height=None, set_margin=0, color=None):
+def plot_track_3d(ax, track_file, set_radius=None, set_width=None, set_height=None, set_margin=0, color=None, gate_alpha=0.1):
     if color is None:
         color = "r"
 
@@ -148,7 +148,7 @@ def plot_track_3d(ax, track_file, set_radius=None, set_width=None, set_height=No
             y = position[1] + r * np.sin(u) * np.sin(v)
             z = position[2] + r * np.cos(v)
             # draw sphere
-            ax.plot_surface(x, y, z, color=color, alpha=0.3, edgecolor="none")
+            ax.plot_surface(x, y, z, color=color, alpha=gate_alpha, edgecolor="none")
             # draw center
             ax.scatter(position[0], position[1], position[2], color="black", s=50)
 
