@@ -5,6 +5,7 @@ from matplotlib.colors import Colormap, ListedColormap
 import matplotlib.ticker as ticker
 from matplotlib.transforms import Bbox
 from race_utils.RaceVisualizer.track import plot_track, plot_track_3d
+from race_utils.RaceGenerator.RaceTrack import RaceTrack
 from typing import Union, Optional, Tuple
 import yaml
 
@@ -21,16 +22,19 @@ matplotlib.rcParams["ps.fonttype"] = 42
 class RacePlotter:
     def __init__(
         self,
-        traj_file: Union[os.PathLike, str],
-        track_file: Union[os.PathLike, str],
+        traj_file: Union[os.PathLike, str, np.ndarray],
+        track_file: Union[os.PathLike, str, RaceTrack],
         wpt_path: Optional[Union[os.PathLike, str]] = None,
     ):
-        self.traj_file = os.fspath(traj_file)
-        self.track_file = os.fspath(track_file)
+        if isinstance(traj_file, np.ndarray):
+            data_ocp = traj_file
+        else:
+            data_ocp = np.genfromtxt(traj_file, dtype=float, delimiter=",", names=True)
+
+        self.track_file = track_file if isinstance(track_file, RaceTrack) else os.fspath(track_file)
         if wpt_path is not None:
             self.wpt_path = os.fspath(wpt_path)
 
-        data_ocp = np.genfromtxt(traj_file, dtype=float, delimiter=",", names=True)
         self.t = data_ocp["t"]
         self.p_x = data_ocp["p_x"]
         self.p_y = data_ocp["p_y"]
