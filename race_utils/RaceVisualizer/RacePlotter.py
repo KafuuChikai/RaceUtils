@@ -521,9 +521,9 @@ class RacePlotter:
             self.ax_3d.yaxis.pane.set_edgecolor("none")
             self.ax_3d.zaxis.pane.set_edgecolor("none")
 
-            self.ax_3d.w_xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-            self.ax_3d.w_yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-            self.ax_3d.w_zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+            self.ax_3d.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+            self.ax_3d.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+            self.ax_3d.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
 
             if hide_ground:
                 bbox = Bbox.from_bounds(1.15, 2.05, 7.5, 3.6)
