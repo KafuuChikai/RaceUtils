@@ -122,7 +122,9 @@ def plot_track(ax, track_file, set_radius=None, set_width=None, set_height=None,
             raise ValueError("Unrecognized gate: " + g["type"])
 
 
-def plot_track_3d(ax, track_file, set_radius=None, set_width=None, set_height=None, set_margin=0, color=None, gate_alpha=0.1):
+def plot_track_3d(
+    ax, track_file, set_radius=None, set_width=None, set_height=None, set_margin=0, color=None, gate_alpha=0.1
+):
     if color is None:
         color = "r"
 

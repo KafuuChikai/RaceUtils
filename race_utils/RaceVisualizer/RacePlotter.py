@@ -182,6 +182,7 @@ class RacePlotter:
         dpi: int = 300,
         save_path: Union[os.PathLike, str] = None,
         fig_name: Optional[str] = None,
+        fig_title: Optional[str] = None,
         radius: Optional[float] = None,
         width: Optional[float] = None,
         height: Optional[float] = None,
@@ -218,6 +219,8 @@ class RacePlotter:
 
         plot_track(plt.gca(), self.track_file, set_radius=radius, set_width=width, set_height=height, set_margin=margin)
 
+        if fig_title is not None:
+            plt.title(fig_title, fontsize=26)
         plt.xlabel("x [m]")
         plt.ylabel("y [m]")
         plt.axis("equal")
@@ -285,6 +288,7 @@ class RacePlotter:
         dpi: int = 300,
         save_path: Union[os.PathLike, str] = None,
         fig_name: Optional[str] = None,
+        fig_title: Optional[str] = None,
         radius: Optional[float] = None,
         width: Optional[float] = None,
         height: Optional[float] = None,
@@ -361,6 +365,8 @@ class RacePlotter:
             gate_alpha=gate_alpha,
         )
 
+        if fig_title is not None:
+            plt.gcf().text(0.5, 0.95, fig_title, fontsize=26, horizontalalignment="center", verticalalignment="top")
         ax.set_xlabel("x [m]", labelpad=30 * (x_range / max_range))
         ax.set_ylabel("y [m]", labelpad=30 * (y_range / max_range))
         ax.set_zlabel("z [m]", labelpad=30 * (z_range / max_range))
