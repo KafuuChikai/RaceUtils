@@ -294,6 +294,7 @@ class RacePlotter:
         gate_color: Optional[str] = None,
         tube_color: Optional[str] = None,
         alpha: float = 0.01,
+        gate_alpha: float = 0.1,
         tube_rate: float = 6,
         shade: bool = True,
     ):
@@ -357,6 +358,7 @@ class RacePlotter:
             set_height=height,
             set_margin=margin,
             color=gate_color,
+            gate_alpha=gate_alpha,
         )
 
         ax.set_xlabel("x [m]", labelpad=30 * (x_range / max_range))
