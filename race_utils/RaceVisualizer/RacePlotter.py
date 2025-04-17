@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap, ListedColormap
 import matplotlib.ticker as ticker
 from matplotlib.transforms import Bbox
+import matplotlib.animation as animation
 from race_utils.RaceVisualizer.track import plot_track, plot_track_3d
 from race_utils.RaceGenerator.RaceTrack import RaceTrack
+from race_utils.RaceVisualizer.QuadcopterDrawer import QuadcopterDrawer
 from typing import Union, Optional, Tuple
 import yaml
 
@@ -425,7 +427,7 @@ class RacePlotter:
             antialiased=True,
         )
 
-    def set_nice_ticks(self, ax, range_val, ticks_count, axis="x"):
+    def set_nice_ticks(self, ax: matplotlib.axes.Axes, range_val: float, ticks_count: int, axis: str = "x"):
         ticks_interval = range_val / (ticks_count - 1)
 
         # select base value for major ticks
@@ -534,3 +536,165 @@ class RacePlotter:
             bbox = "tight"
 
         self.ax_3d.figure.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches=bbox)
+
+    def draw_quadcopter(
+        self,
+        ax,
+        position: np.ndarray,
+        orientation: np.ndarray,
+        color: str = "blue",
+        quad_type: str = "X",
+        arm_length: float = 0.2,
+    ):
+        """
+        Draw a quadcopter at the given position and orientation.
+
+        Parameters
+        ----------
+        ax : Axes3D
+            The 3D axes to draw on.
+        position : np.ndarray
+            The position of the quadcopter.
+        orientation : np.ndarray
+            The orientation of the quadcopter as a quaternion.
+        color : str, optional
+            The color of the quadcopter, by default "blue".
+        type : str, optional
+            The type of the quadcopter, either "X" or "H", by default "X".
+        arm_length : float, optional
+            The length of the quadcopter arms, by default 0.2.
+
+        Returns
+        -------
+        None
+        """
+
+        if not hasattr(self, "quadcopter_drawer"):
+            self.quadcopter_drawer = QuadcopterDrawer(arm_length=arm_length, quad_type=quad_type, color=color)
+
+        return self.quadcopter_drawer.draw_quadcopter(ax=ax, position=position, attitude=orientation)
+
+    def create_animation(self, attitudes=None, save_path=None, fps=100, dpi=200):
+        """Create a 3D animation of the drone trajectory.
+
+        Parameters
+        ----------
+        positions : np.ndarray
+            Array of shape (time_steps, 3) representing the positions.
+        attitudes : np.ndarray, optional
+            Array of shape (time_steps, 3) or (time_steps, 4) representing the attitudes.
+            Can be Euler angles or quaternions. If None, zero attitude is used.
+        save_path : str, optional
+            Path to save the animation. If None, the animation is displayed.
+        fps : int, optional
+            Frames per second for the animation, by default 20.
+        dpi : int, optional
+            Dots per inch for saving the animation, by default 200.
+
+        Returns
+        -------
+        animation : matplotlib.animation.FuncAnimation
+            The created animation object.
+        """
+        # ensure positions in a right shape
+        positions = self.ps
+        # positions = positions.reshape((-1, 3))
+        time_steps = positions.shape[0]
+
+        fig = plt.figure(figsize=(12, 10))
+        ax = fig.add_subplot(111, projection="3d")
+
+        # if attitudes is None, create a default attitude
+        if attitudes is None:
+            attitudes = np.zeros((time_steps, 4))  # default quaternion
+            attitudes[:, 3] = 1.0  # set the w component to 1.0
+
+        # get the range of the positions
+        x_min, x_max = positions[:, 0].min(), positions[:, 0].max()
+        y_min, y_max = positions[:, 1].min(), positions[:, 1].max()
+        z_min, z_max = positions[:, 2].min(), positions[:, 2].max()
+
+        # adjust the limits with a margin
+        margin = 0.1 * max(x_max - x_min, y_max - y_min, z_max - z_min)
+        ax.set_xlim(x_min - margin, x_max + margin)
+        ax.set_ylim(y_min - margin, y_max + margin)
+        ax.set_zlim(z_min - margin, z_max + margin)
+
+        # set the aspect ratio
+        ax.set_xlabel("X [m]")
+        ax.set_ylabel("Y [m]")
+        ax.set_zlabel("Z [m]")
+
+        # create lines for the drone
+        quad_artists = []
+        color = "blue"
+        (line,) = ax.plot([], [], [], color=color, linewidth=2, label="Drone")
+
+        # the initialization function
+        def init():
+            line.set_data([], [])
+            line.set_3d_properties([])
+
+            # clear previous quadcopter artists
+            for artist in quad_artists:
+                if isinstance(artist, list):
+                    for a in artist:
+                        try:
+                            a.remove()
+                        except:
+                            pass
+                else:
+                    try:
+                        artist.remove()
+                    except:
+                        pass
+            quad_artists.clear()
+
+            return line
+
+        # the update function for each frame
+        def update(frame):
+            # get the current position
+            x = positions[: frame + 1, 0]
+            y = positions[: frame + 1, 1]
+            z = positions[: frame + 1, 2]
+            line.set_data(x, y)
+            line.set_3d_properties(z)
+
+            # clear previous quadcopter artists
+            for artist in quad_artists:
+                try:
+                    artist.remove()
+                except:
+                    pass
+            quad_artists.clear()
+
+            # draw the quadcopter
+            position = positions[frame]
+            attitude = attitudes[frame]
+            color = "blue"
+
+            # draw the quadcopter
+            artists = self.draw_quadcopter(ax=ax, position=position, orientation=attitude, color=color)
+            quad_artists.extend(artists)
+
+            all_artists = [line]
+            all_artists.extend(artists)
+            return all_artists
+
+        # create the animation
+        ani = animation.FuncAnimation(
+            fig,
+            update,
+            frames=min(time_steps, 5000),  # limit the number of frames to 300
+            init_func=init,
+            blit=False,
+            interval=0,
+        )
+
+        # save the animation if a path is provided
+        if save_path is not None:
+            ani.save(save_path, writer="ffmpeg", fps=fps, dpi=dpi)
+            print(f"The animation is saved at {save_path}")
+
+        return ani
