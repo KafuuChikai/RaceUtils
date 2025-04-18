@@ -570,9 +570,9 @@ class RacePlotter:
         """
 
         if not hasattr(self, "quadcopter_drawer"):
-            self.quadcopter_drawer = QuadcopterDrawer(arm_length=arm_length, quad_type=quad_type)
+            self.quadcopter_drawer = QuadcopterDrawer(ax=ax, arm_length=arm_length, quad_type=quad_type)
 
-        return self.quadcopter_drawer.draw_quadcopter(ax=ax, position=position, attitude=orientation)
+        return self.quadcopter_drawer.draw(position=position, attitude=orientation)
 
     def create_animation(self, attitudes=None, save_path=None, fps=30, dpi=200):
         """Create a 3D animation of the drone trajectory.
@@ -603,7 +603,12 @@ class RacePlotter:
             [np.interp(times, self.t, self.p_x), np.interp(times, self.t, self.p_y), np.interp(times, self.t, self.p_z)]
         ).T
         attitudes = np.array(
-            [np.interp(times, self.t, self.q_x), np.interp(times, self.t, self.q_y), np.interp(times, self.t, self.q_z), np.interp(times, self.t, self.q_w)]
+            [
+                np.interp(times, self.t, self.q_x),
+                np.interp(times, self.t, self.q_y),
+                np.interp(times, self.t, self.q_z),
+                np.interp(times, self.t, self.q_w),
+            ]
         ).T
         time_steps = positions.shape[0]
         fig = plt.figure(figsize=(12, 10))
@@ -703,7 +708,7 @@ class RacePlotter:
             frames=time_steps,
             init_func=init,
             blit=False,
-            interval=1000/fps,
+            interval=1000 / fps,
         )
 
         # save the animation if a path is provided
