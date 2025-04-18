@@ -7,7 +7,7 @@ from matplotlib.transforms import Bbox
 import matplotlib.animation as animation
 from race_utils.RaceVisualizer.track import plot_track, plot_track_3d
 from race_utils.RaceGenerator.RaceTrack import RaceTrack
-from race_utils.RaceVisualizer.QuadcopterDrawer import QuadcopterDrawer
+from race_utils.RaceVisualizer.Drawers.QuadcopterDrawer import QuadcopterDrawer
 from typing import Union, Optional, Tuple
 import yaml
 

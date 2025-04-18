@@ -76,8 +76,6 @@ class QuadcopterDrawer:
         """
         x, y, z = position
         artists = []
-        quad_type = self.quad_type
-        color = self.color
 
         # convert attitude to rotation matrix
         if len(attitude) == 3:  # use [roll, pitch, yaw] for euler angles
@@ -91,11 +89,10 @@ class QuadcopterDrawer:
         artists = self.draw_propeller(ax=ax, total_artists=artists, position=position, rotation_matrix=R)
 
         # draw the body of the quadcopter
-        base_height = 0.05 * self.arm_length
-        body_height = 0.5 * self.arm_length
-
         artists = self.draw_body(ax=ax, total_artists=artists, position=position, rotation_matrix=R, top_color='black', side_color='gray', edge_color='white', alpha=0.5)
 
+        base_height = 0.05 * self.arm_length
+        body_height = 0.5 * self.arm_length
         cylinder_radius = 0.1 * self.arm_length
         cylinder_height_h = 0.25 * self.arm_length
         cylinder_height_l = 0.2 * self.arm_length
