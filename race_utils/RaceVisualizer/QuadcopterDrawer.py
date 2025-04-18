@@ -56,16 +56,16 @@ class QuadcopterDrawer:
         self.front_color = front_color
         self.back_color = back_color
 
-    def draw_quadcopter(self, ax: Axes3D, position: list, attitude: list, show_body_axis: bool = False) -> list:
+    def draw_quadcopter(self, ax: Axes3D, position: np.ndarray, attitude: np.ndarray, show_body_axis: bool = False) -> list:
         """Draw a quadcopter in 3D space
 
         Parameters
         ---------
         ax: matplotlib 3D axis object
             The axis on which to draw the quadcopter
-        position: list
+        position: np.ndarray
             [x, y, z] position of the quadcopter
-        attitude: list
+        attitude: np.ndarray
             [roll, pitch, yaw] Euler angles (in radians) or quaternion [qx, qy, qz, qw]
 
         Returns:
@@ -87,76 +87,12 @@ class QuadcopterDrawer:
         else:
             raise ValueError("Attitude must be either Euler angles [roll, pitch, yaw] or quaternion [qx, qy, qz, qw]")
 
-        # Define the quadcopter arms in the body frame
-        if quad_type == "X":
-            arms = np.array(
-                [
-                    [self.arm_length / np.sqrt(2), -self.arm_length / np.sqrt(2), 0],  # front-left: id 0
-                    [self.arm_length / np.sqrt(2), self.arm_length / np.sqrt(2), 0],  # front-right: id 1
-                    [-self.arm_length / np.sqrt(2), -self.arm_length / np.sqrt(2), 0],  # back-left: id 2
-                    [-self.arm_length / np.sqrt(2), self.arm_length / np.sqrt(2), 0],  # back-right: id 3
-                ]
-            )
-        elif quad_type == "H":
-            arms = np.array(
-                [
-                    [self.arm_length, 0, 0],  # front
-                    [0, self.arm_length, 0],  # right
-                    [-self.arm_length, 0, 0],  # back
-                    [0, -self.arm_length, 0],  # left
-                ]
-            )
-        else:
-            raise ValueError("Quadcopter type must be either 'X' or 'H'")
-
-        # Convert arms to world coordinates
-        arms_world = np.array([np.dot(R, arm) for arm in arms])
-
-        # Draw the quadcopter arms and propellers
-        for i, arm in enumerate(arms_world):
-            # calculate the end point of the arm
-            end_point = position + arm
-
-            # draw the arm
-            (line,) = ax.plot([x, end_point[0]], [y, end_point[1]], [z, end_point[2]], color=color, linewidth=2)
-            artists.append(line)
-
-            # draw the propeller
-            if quad_type == "X":
-                prop_color = self.front_color if i < 2 else self.back_color  # alternate colors
-            else:
-                prop_color = self.color
-            circle_radius = self.arm_length * 1.1 / 2
-            theta = np.linspace(0, 2 * np.pi, 20)
-
-            # rotate the vectors to match the arm orientation
-            v1 = np.dot(R, np.array([1, 0, 0]))
-            v2 = np.dot(R, np.array([0, 1, 0]))
-
-            # draw the propeller circle with thinkness
-            circle_points = np.array([end_point + circle_radius * (np.cos(t) * v1 + np.sin(t) * v2) for t in theta])
-            (prop_line,) = ax.plot(
-                circle_points[:, 0], circle_points[:, 1], circle_points[:, 2], color=prop_color, linewidth=2.5
-            )
-            artists.append(prop_line)
-            end_point_top = position + arm + 0.1 * self.arm_length * np.dot(R, np.array([0, 0, 1]))
-            circle_points = np.array([end_point_top + circle_radius * (np.cos(t) * v1 + np.sin(t) * v2) for t in theta])
-            (prop_line_top,) = ax.plot(
-                circle_points[:, 0], circle_points[:, 1], circle_points[:, 2], color=prop_color, linewidth=2.5
-            )
-            artists.append(prop_line_top)
-            end_point_bottom = position + arm - 0.1 * self.arm_length * np.dot(R, np.array([0, 0, 1]))
-            circle_points = np.array([end_point_bottom + circle_radius * (np.cos(t) * v1 + np.sin(t) * v2) for t in theta])
-            (prop_line_bottom,) = ax.plot(
-                circle_points[:, 0], circle_points[:, 1], circle_points[:, 2], color=prop_color, linewidth=2.5
-            )
-            artists.append(prop_line_bottom)
+        # draw the quadcopter arms and propellers
+        artists = self.draw_propeller(ax=ax, total_artists=artists, position=position, rotation_matrix=R)
 
         # draw the body of the quadcopter
         base_height = 0.05 * self.arm_length
         body_height = 0.5 * self.arm_length
-        half_size_l = self.arm_length * 1.3 / 2
-        half_size_w = self.arm_length * 0.8 / 2
 
         artists = self.draw_body(ax=ax, total_artists=artists, position=position, rotation_matrix=R, top_color='black', side_color='gray', edge_color='white', alpha=0.5)
 
@@ -238,6 +174,83 @@ class QuadcopterDrawer:
             artists.append(arrow_z)
 
         return artists
+
+    def draw_propeller(self, ax: Axes3D, total_artists: list, position: np.ndarray, rotation_matrix: np.ndarray) -> list:
+        """Draw the propellers of the quadcopter
+
+        Parameters
+        ----------
+        ax: matplotlib 3D axis object
+            The axis on which to draw the quadcopter
+        total_artists: list
+            List of artists created for the quadcopter, used for later updates or deletions
+        position: np.ndarray
+            [x, y, z] position of the quadcopter
+        rotation_matrix: np.ndarray
+            3x3 rotation matrix for the quadcopter orientation
+
+        Returns:
+        -------
+        artists: list
+            List of artists created for the quadcopter, used for later updates or deletions
+
+        """
+        x, y, z = position
+        quad_type = self.quad_type
+        artists = []
+        # Define the quadcopter arms in the body frame
+        if quad_type == "X":
+            arms = np.array(
+                [
+                    [self.arm_length / np.sqrt(2), -self.arm_length / np.sqrt(2), 0],  # front-left: id 0
+                    [self.arm_length / np.sqrt(2), self.arm_length / np.sqrt(2), 0],  # front-right: id 1
+                    [-self.arm_length / np.sqrt(2), -self.arm_length / np.sqrt(2), 0],  # back-left: id 2
+                    [-self.arm_length / np.sqrt(2), self.arm_length / np.sqrt(2), 0],  # back-right: id 3
+                ]
+            )
+        elif quad_type == "H":
+            arms = np.array(
+                [
+                    [self.arm_length, 0, 0],  # front
+                    [0, self.arm_length, 0],  # right
+                    [-self.arm_length, 0, 0],  # back
+                    [0, -self.arm_length, 0],  # left
+                ]
+            )
+        else:
+            raise ValueError("Quadcopter type must be either 'X' or 'H'")
+
+        # Convert arms to world coordinates
+        arms_world = np.array([np.dot(rotation_matrix, arm) for arm in arms])
+        # Draw the quadcopter arms and propellers
+        for i, arm in enumerate(arms_world):
+            # calculate the end point of the arm
+            end_point = position + arm
+
+            # draw the arm
+            (line,) = ax.plot([x, end_point[0]], [y, end_point[1]], [z, end_point[2]], color=self.color, linewidth=2)
+            artists.append(line)
+
+            # draw the propeller
+            if quad_type == "X":
+                prop_color = self.front_color if i < 2 else self.back_color  # alternate colors
+            else:
+                prop_color = self.color
+            circle_radius = self.arm_length * 1.1 / 2
+            theta = np.linspace(0, 2 * np.pi, 20)
+
+            # rotate the vectors to match the arm orientation
+            v1 = np.dot(rotation_matrix, np.array([1, 0, 0]))
+            v2 = np.dot(rotation_matrix, np.array([0, 1, 0]))
+
+            # draw the propeller circle with thinkness
+            circle_points = np.array([end_point + circle_radius * (np.cos(t) * v1 + np.sin(t) * v2) for t in theta])
+            (prop_line,) = ax.plot(
+                circle_points[:, 0], circle_points[:, 1], circle_points[:, 2], color=prop_color, linewidth=2.5
+            )
+            artists.append(prop_line)
+        total_artists.extend(artists)
+        return total_artists
 
     def draw_body(self, ax, total_artists, position, rotation_matrix, top_color='black', side_color='gray', edge_color='white', alpha=0.5):
         base_height = 0.05 * self.arm_length
