@@ -6,36 +6,67 @@ from race_utils.RaceVisualizer.Drawers.BaseDrawer import Arrow3D, BaseDrawer
 
 
 class QuadcopterDrawer(BaseDrawer):
-    """Class to draw a quadcopter in 3D space using matplotlib"""
+    """Class to draw a quadcopter in 3D space using matplotlib
+
+    The quadcopter is the same as the real world quadcopter of NeSC, ZJU
+    """
 
     def __init__(
         self,
         ax: Axes3D,
         show_body_axis: bool = False,
         arm_length: float = 0.2,
+        arm_angle: float = np.pi * 65 / 180,
         quad_type: str = "X",
-        color: str = "black",
+        arm_color: str = "black",
         front_color: str = "chartreuse",
         back_color: str = "deepskyblue",
+        body_top_color: str = "gray",
+        body_side_color: str = "black",
+        body_edge_color: str = "white",
+        body_alpha: float = 0.5,
     ):
         """Initialize the QuadcopterDrawer
 
         Parameters
         ---------
+        ax: matplotlib 3D axis object
+            The axis on which to draw the quadcopter
+        show_body_axis: bool
+            Whether to show the body axis of the quadcopter (default is False)
         arm_length: float
             Length of the quadcopter arms (default is 0.2)
+        arm_angle: float
+            Angle of the quadcopter arms (default is np.pi / 3)
         quad_type: str
             Type of quadcopter ('X' or 'H', default is 'X')
-        color: str
-            Color of the quadcopter body (default is 'blue')
+        arm_color: str
+            Color of the quadcopter arms (default is 'black')
+        front_color: str
+            Color of the front propellers (default is 'chartreuse')
+        back_color: str
+            Color of the back propellers (default is 'deepskyblue')
+        body_top_color: str
+            Color of the top face of the quadcopter body (default is 'black')
+        body_side_color: str
+            Color of the side faces of the quadcopter body (default is 'gray')
+        body_edge_color: str
+            Color of the edges of the quadcopter body (default is 'white')
+        body_alpha: float
+            Alpha value for the quadcopter body (default is 0.5)
 
         """
         super().__init__(ax=ax, show_body_axis=show_body_axis)
         self.arm_length = arm_length
+        self.arm_angle = arm_angle
         self.quad_type = quad_type
-        self.color = color
+        self.arm_color = arm_color
         self.front_color = front_color
         self.back_color = back_color
+        self.body_top_color = body_top_color
+        self.body_side_color = body_side_color
+        self.body_edge_color = body_edge_color
+        self.body_alpha = body_alpha
 
     def draw(self, position: np.ndarray, attitude: np.ndarray) -> list:
         """Draw a quadcopter in 3D space
@@ -55,7 +86,7 @@ class QuadcopterDrawer(BaseDrawer):
             List of artists created for the quadcopter, used for later updates or deletions
 
         """
-        x, y, z = position
+        # clear the previous artists
         self.total_artists = []
 
         # convert attitude to rotation matrix
@@ -73,37 +104,13 @@ class QuadcopterDrawer(BaseDrawer):
         self._draw_body(
             position=position,
             rotation_matrix=R,
-            top_color="black",
-            side_color="gray",
-            edge_color="white",
-            alpha=0.5,
         )
 
-        base_height = 0.05 * self.arm_length
-        body_height = 0.5 * self.arm_length
-        cylinder_radius = 0.1 * self.arm_length
-        cylinder_height_h = 0.25 * self.arm_length
-        cylinder_height_l = 0.2 * self.arm_length
-        cylinder_h_center = position + np.dot(R, np.array([0, 0, base_height + body_height + cylinder_height_h / 2]))
-        cylinder_l_centers_1 = position + np.dot(R, np.array([0, 0, base_height]))
-        cylinder_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
-        cylinder_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
-        self._draw_cylinder(
-            center=cylinder_h_center,
-            height=cylinder_height_h,
-            radius=cylinder_radius,
+        # draw the motion balls
+        self._draw_motion_balls(
+            position=position,
             rotation_matrix=R,
-            color="white",
-            alpha=1,
         )
-        # artists = self.draw_cylinder(ax=ax, total_artists=artists, center=cylinder_h_center, height=cylinder_height_l, radius=cylinder_radius, rotation_matrix=R, color='white', alpha=1)
-
-        ball_radius = 0.15 * self.arm_length
-        ball_h_center = position + np.dot(R, np.array([0, 0, base_height + body_height + cylinder_height_h]))
-        self._draw_sphere(center=ball_h_center, radius=ball_radius, color="gray", alpha=1)
-        # ball_l_centers_1 = position + np.dot(R, np.array([0, 0, base_height]))
-        # ball_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
-        # ball_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
 
         # draw the body axis vector
         if self.show_body_axis:
@@ -111,24 +118,15 @@ class QuadcopterDrawer(BaseDrawer):
 
         return self.total_artists
 
-    def _draw_propeller(self, position: np.ndarray, rotation_matrix: np.ndarray) -> list:
+    def _draw_propeller(self, position: np.ndarray, rotation_matrix: np.ndarray) -> None:
         """Draw the propellers of the quadcopter
 
         Parameters
         ----------
-        ax: matplotlib 3D axis object
-            The axis on which to draw the quadcopter
-        total_artists: list
-            List of artists created for the quadcopter, used for later updates or deletions
         position: np.ndarray
             [x, y, z] position of the quadcopter
         rotation_matrix: np.ndarray
             3x3 rotation matrix for the quadcopter orientation
-
-        Returns:
-        -------
-        artists: list
-            List of artists created for the quadcopter, used for later updates or deletions
 
         """
         ax = self.ax
@@ -139,10 +137,26 @@ class QuadcopterDrawer(BaseDrawer):
         if quad_type == "X":
             arms = np.array(
                 [
-                    [self.arm_length / np.sqrt(2), -self.arm_length / np.sqrt(2), 0],  # front-left: id 0
-                    [self.arm_length / np.sqrt(2), self.arm_length / np.sqrt(2), 0],  # front-right: id 1
-                    [-self.arm_length / np.sqrt(2), -self.arm_length / np.sqrt(2), 0],  # back-left: id 2
-                    [-self.arm_length / np.sqrt(2), self.arm_length / np.sqrt(2), 0],  # back-right: id 3
+                    [
+                        self.arm_length * np.cos(self.arm_angle),
+                        -self.arm_length * np.cos(self.arm_angle),
+                        0,
+                    ],  # front-left: id 0
+                    [
+                        self.arm_length * np.cos(self.arm_angle),
+                        self.arm_length * np.cos(self.arm_angle),
+                        0,
+                    ],  # front-right: id 1
+                    [
+                        -self.arm_length * np.cos(self.arm_angle),
+                        -self.arm_length * np.cos(self.arm_angle),
+                        0,
+                    ],  # back-left: id 2
+                    [
+                        -self.arm_length * np.cos(self.arm_angle),
+                        self.arm_length * np.cos(self.arm_angle),
+                        0,
+                    ],  # back-right: id 3
                 ]
             )
         elif quad_type == "H":
@@ -165,29 +179,43 @@ class QuadcopterDrawer(BaseDrawer):
             end_point = position + arm
 
             # draw the arm
-            (line,) = ax.plot([x, end_point[0]], [y, end_point[1]], [z, end_point[2]], color=self.color, linewidth=2)
+            (line,) = ax.plot(
+                [x, end_point[0]], [y, end_point[1]], [z, end_point[2]], color=self.arm_color, linewidth=2
+            )
             artists.append(line)
+            end_point_rotor = end_point + np.dot(rotation_matrix, np.array([0, 0, -0.06 * self.arm_length]))
+            # draw the rotor
+            self._draw_cylinder(
+                center=end_point_rotor,
+                height=0.12 * self.arm_length,
+                radius=0.06 * self.arm_length,
+                rotation_matrix=rotation_matrix,
+                color=self.arm_color,
+                alpha=1.0,
+                closed=True,
+            )
 
             # draw the propeller
+            end_point_prop = end_point + np.dot(rotation_matrix, np.array([0, 0, -0.2 * self.arm_length]))
             if quad_type == "X":
                 prop_color = self.front_color if i < 2 else self.back_color  # alternate colors
             else:
-                prop_color = self.color
-            circle_radius = 0.5 * self.arm_length
+                prop_color = self.front_color
+            circle_radius = 0.4 * self.arm_length
             circle_height = 0.1 * self.arm_length
             self._draw_cylinder_ring(
-                center=end_point,
+                center=end_point_prop,
                 height=circle_height,
-                outer_radius=1.1 * circle_radius,
-                inner_radius=0.9 * circle_radius,
+                outer_radius=1.0 * circle_radius,
+                inner_radius=0.8 * circle_radius,
                 rotation_matrix=rotation_matrix,
                 color=prop_color,
-                alpha=1,
+                alpha=0.3,
             )
             self._draw_cylinder(
-                center=end_point,
+                center=end_point_prop,
                 height=circle_height,
-                radius=0.9 * circle_radius,
+                radius=0.8 * circle_radius,
                 rotation_matrix=rotation_matrix,
                 color=prop_color,
                 alpha=0.1,
@@ -198,18 +226,24 @@ class QuadcopterDrawer(BaseDrawer):
 
     def _draw_body(
         self,
-        position,
-        rotation_matrix,
-        top_color="black",
-        side_color="gray",
-        edge_color="white",
-        alpha=0.5,
-    ):
+        position: np.ndarray,
+        rotation_matrix: np.ndarray,
+    ) -> None:
+        """Draw the body of the quadcopter
+
+        Parameters
+        ----------
+        position: np.ndarray
+            [x, y, z] position of the quadcopter
+        rotation_matrix: np.ndarray
+            3x3 rotation matrix for the quadcopter orientation
+
+        """
         ax = self.ax
-        base_height = 0.05 * self.arm_length
-        body_height = 0.5 * self.arm_length
-        half_size_l = self.arm_length * 1.3 / 2
-        half_size_w = self.arm_length * 0.8 / 2
+        base_height = 0.02 * self.arm_length
+        body_height = 0.4 * self.arm_length
+        half_size_l = self.arm_length * 0.8 / 2
+        half_size_w = self.arm_length * 0.5 / 2
 
         # define the vertices of the cube in the body frame
         cube_vertices = np.array(
@@ -238,21 +272,73 @@ class QuadcopterDrawer(BaseDrawer):
             [1, 2, 6, 5],  # 5: right face
         ]
 
-        # 为每个面创建多边形
+        # create a 3D polygon for each face of the cube
         for face_id, face in enumerate(faces):
-            # 获取这个面的顶点
+            # get the vertices of the face in world coordinates
             face_vertices = [cube_vertices_world[idx] for idx in face]
 
-            # 创建3D多边形集合
-            poly = Poly3DCollection([face_vertices], alpha=alpha)
+            # create a Poly3DCollection for the face
+            poly = Poly3DCollection([face_vertices], alpha=self.body_alpha)
 
-            # 设置颜色，可以根据朝向不同设置不同颜色
+            # set the color and edge color of the face
             if face_id < 2:
-                poly.set_color(top_color)
-                poly.set_edgecolor(edge_color)
+                poly.set_color(self.body_top_color)
+                poly.set_edgecolor(self.body_edge_color)
             else:
-                poly.set_color(side_color)
-                poly.set_edgecolor(edge_color)
+                poly.set_color(self.body_side_color)
+                poly.set_edgecolor(self.body_edge_color)
 
             ax.add_collection3d(poly)
             self.total_artists.append(poly)
+
+    def _draw_motion_balls(
+        self,
+        position: np.ndarray,
+        rotation_matrix: np.ndarray,
+    ) -> None:
+        """Draw the motion balls of the quadcopter
+
+        Parameters
+        ----------
+        position: np.ndarray
+            [x, y, z] position of the quadcopter
+        rotation_matrix: np.ndarray
+            3x3 rotation matrix for the quadcopter orientation
+
+        """
+        # compute the size and position of the base
+        base_height = 0.05 * self.arm_length
+        body_height = 0.5 * self.arm_length
+
+        # compute the size and position of the motion cylinders
+        cylinder_radius = 0.1 * self.arm_length
+        cylinder_height_h = 0.25 * self.arm_length
+        cylinder_height_l = 0.2 * self.arm_length
+        cylinder_h_center = position + np.dot(
+            rotation_matrix, np.array([0, 0, base_height + body_height + cylinder_height_h / 2])
+        )
+        cylinder_l_centers_1 = position + np.dot(rotation_matrix, np.array([0, 0, base_height]))
+        cylinder_l_centers_2 = position + np.dot(rotation_matrix, np.array([0, 0, base_height]))
+        cylinder_l_centers_2 = position + np.dot(rotation_matrix, np.array([0, 0, base_height]))
+
+        # compute the size and position of the motion balls
+        ball_radius = 0.15 * self.arm_length
+        ball_h_center = position + np.dot(
+            rotation_matrix, np.array([0, 0, base_height + body_height + cylinder_height_h])
+        )
+
+        # draw the motion cylinders 1
+        self._draw_cylinder(
+            center=cylinder_h_center,
+            height=cylinder_height_h,
+            radius=cylinder_radius,
+            rotation_matrix=rotation_matrix,
+            color="white",
+            alpha=1,
+        )
+
+        # draw the motion balls
+        self._draw_sphere(center=ball_h_center, radius=ball_radius, color="gray", alpha=1)
+        # ball_l_centers_1 = position + np.dot(R, np.array([0, 0, base_height]))
+        # ball_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
+        # ball_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
