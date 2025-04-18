@@ -173,10 +173,27 @@ class QuadcopterDrawer(BaseDrawer):
                 prop_color = self.front_color if i < 2 else self.back_color  # alternate colors
             else:
                 prop_color = self.color
-            circle_radius = 1.1 * self.arm_length / 2
-            circle_height = 0.2 * self.arm_length
-            self._draw_cylinder(center=end_point, height=circle_height, radius=circle_radius, rotation_matrix=rotation_matrix, color=prop_color, alpha=1, closed=False)
-        
+            circle_radius = 0.5 * self.arm_length
+            circle_height = 0.1 * self.arm_length
+            self._draw_cylinder_ring(
+                center=end_point,
+                height=circle_height,
+                outer_radius=1.1 * circle_radius,
+                inner_radius=0.9 * circle_radius,
+                rotation_matrix=rotation_matrix,
+                color=prop_color,
+                alpha=1,
+            )
+            self._draw_cylinder(
+                center=end_point,
+                height=circle_height,
+                radius=0.9 * circle_radius,
+                rotation_matrix=rotation_matrix,
+                color=prop_color,
+                alpha=0.1,
+                closed=True,
+            )
+
         self.total_artists.extend(artists)
 
     def _draw_body(

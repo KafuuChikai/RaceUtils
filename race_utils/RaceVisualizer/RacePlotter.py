@@ -544,7 +544,7 @@ class RacePlotter:
         orientation: np.ndarray,
         color: str = "black",
         quad_type: str = "X",
-        arm_length: float = 2.0,
+        arm_length: float = 1.0,
     ):
         """
         Draw a quadcopter at the given position and orientation.

@@ -2,6 +2,8 @@ import numpy as np
 from mpl_toolkits.mplot3d.proj3d import proj_transform
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.colors import to_rgba
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 class Arrow3D(FancyArrowPatch):
@@ -112,7 +114,18 @@ class BaseDrawer:
                 circle_y_rot = rotated_circle[1] + center[1]
                 circle_z_rot = rotated_circle[2] + center[2]
 
-                # draw the circle
+                # create the vertices for the circle
+                verts = [list(zip(circle_x_rot, circle_y_rot, circle_z_rot))]
+
+                # create the Poly3DCollection
+                circle_color = to_rgba(color, alpha)
+                circle_poly = Poly3DCollection(verts, facecolors=circle_color, edgecolors=circle_color)
+
+                # add the circle to the plot
+                self.ax.add_collection3d(circle_poly)
+                artists.append(circle_poly)
+
+                # draw the edge of the circle
                 circ = self.ax.plot(circle_x_rot, circle_y_rot, circle_z_rot, color=color)
                 artists.append(circ[0])
 
@@ -143,6 +156,100 @@ class BaseDrawer:
         surf = self.ax.plot_surface(x, y, z, color=color, alpha=alpha)
         self.total_artists.append(surf)
 
+    def _draw_cylinder_ring(
+        self,
+        center: np.ndarray,
+        height: float,
+        outer_radius: float,
+        inner_radius: float,
+        rotation_matrix: np.ndarray,
+        color: str = "white",
+        alpha: float = 1.0,
+    ) -> None:
+        """Draw a ring in 3D space.
+
+        Parameters
+        ----------
+        center : np.ndarray
+            Center of the ring in 3D space.
+        height : float
+            Height of the ring.
+        outer_radius : float
+            The outer radius of the ring.
+        inner_radius : float
+            The inner radius of the ring.
+        rotation_matrix : np.ndarray
+            Rotation matrix to rotate the ring.
+        color : str
+            Color of the ring.
+        alpha : float
+            Transparency of the ring.
+
+        """
+        artists = []
+
+        # draw the outer cylinder
+        self._draw_cylinder(
+            center=center,
+            height=height,
+            radius=outer_radius,
+            rotation_matrix=rotation_matrix,
+            color=color,
+            alpha=alpha,
+            closed=False,
+        )
+        # draw the inner cylinder
+        self._draw_cylinder(
+            center=center,
+            height=height,
+            radius=inner_radius,
+            rotation_matrix=rotation_matrix,
+            color="white",
+            alpha=alpha,
+            closed=False,
+        )
+
+        # draw the outer and inner circles
+        for z_pos in [-height / 2, height / 2]:
+            # create the points for the ring
+            theta = np.linspace(0, 2 * np.pi, 40)
+
+            # outer circle points
+            outer_x = outer_radius * np.cos(theta)
+            outer_y = outer_radius * np.sin(theta)
+            outer_z = np.ones_like(theta) * z_pos
+
+            # inner circle points (reversed order)
+            inner_x = inner_radius * np.cos(theta[::-1])
+            inner_y = inner_radius * np.sin(theta[::-1])
+            inner_z = np.ones_like(theta) * z_pos
+
+            # concatenate the outer and inner points
+            ring_x = np.concatenate([outer_x, inner_x])
+            ring_y = np.concatenate([outer_y, inner_y])
+            ring_z = np.concatenate([outer_z, inner_z])
+
+            # apply rotation
+            ring_points = np.array([ring_x, ring_y, ring_z])
+            rotated_ring = np.einsum("ij,jk->ik", rotation_matrix, ring_points)
+
+            # move to center
+            ring_x_rot = rotated_ring[0] + center[0]
+            ring_y_rot = rotated_ring[1] + center[1]
+            ring_z_rot = rotated_ring[2] + center[2]
+
+            # create the vertices for the ring
+            verts = [list(zip(ring_x_rot, ring_y_rot, ring_z_rot))]
+
+            # create the Poly3DCollection
+            ring_color = to_rgba(color, alpha)
+            ring_poly = Poly3DCollection(verts, facecolors=ring_color, edgecolors=ring_color)
+
+            # add the ring to the plot
+            self.ax.add_collection3d(ring_poly)
+            artists.append(ring_poly)
+
+        self.total_artists.extend(artists)
 
     def _draw_body_axis(self, position: np.ndarray, rotation_matrix: np.ndarray) -> None:
         """Draw an arrow in 3D space.
