@@ -11,6 +11,7 @@ class QuadcopterDrawer(BaseDrawer):
     def __init__(
         self,
         ax: Axes3D,
+        show_body_axis: bool = False,
         arm_length: float = 0.2,
         quad_type: str = "X",
         color: str = "black",
@@ -29,14 +30,14 @@ class QuadcopterDrawer(BaseDrawer):
             Color of the quadcopter body (default is 'blue')
 
         """
-        super().__init__(ax=ax)
+        super().__init__(ax=ax, show_body_axis=show_body_axis)
         self.arm_length = arm_length
         self.quad_type = quad_type
         self.color = color
         self.front_color = front_color
         self.back_color = back_color
 
-    def draw(self, position: np.ndarray, attitude: np.ndarray, show_body_axis: bool = False) -> list:
+    def draw(self, position: np.ndarray, attitude: np.ndarray) -> list:
         """Draw a quadcopter in 3D space
 
         Parameters
@@ -87,7 +88,7 @@ class QuadcopterDrawer(BaseDrawer):
         cylinder_l_centers_1 = position + np.dot(R, np.array([0, 0, base_height]))
         cylinder_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
         cylinder_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
-        self.draw_cylinder(
+        self._draw_cylinder(
             center=cylinder_h_center,
             height=cylinder_height_h,
             radius=cylinder_radius,
@@ -99,76 +100,18 @@ class QuadcopterDrawer(BaseDrawer):
 
         ball_radius = 0.15 * self.arm_length
         ball_h_center = position + np.dot(R, np.array([0, 0, base_height + body_height + cylinder_height_h]))
-        ball_l_centers_1 = position + np.dot(R, np.array([0, 0, base_height]))
-        ball_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
-        ball_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
-        theta = np.linspace(0, np.pi, 20)
-        phi = np.linspace(0, 2 * np.pi, 20)
-        theta_grid, phi_grid = np.meshgrid(theta, phi)
-        x_ball = ball_radius * np.sin(theta_grid) * np.cos(phi_grid)
-        y_ball = ball_radius * np.sin(theta_grid) * np.sin(phi_grid)
-        z_ball = ball_radius * np.cos(theta_grid)
-        x_ball += ball_h_center[0]
-        y_ball += ball_h_center[1]
-        z_ball += ball_h_center[2]
-        ball = self.ax.plot_surface(x_ball, y_ball, z_ball, color="gray", alpha=1)
-        self.total_artists.append(ball)
+        self._draw_sphere(center=ball_h_center, radius=ball_radius, color="gray", alpha=1)
+        # ball_l_centers_1 = position + np.dot(R, np.array([0, 0, base_height]))
+        # ball_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
+        # ball_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
 
         # draw the body axis vector
-        if show_body_axis:
-            body_x = np.dot(R, 3 * self.arm_length * np.array([1, 0, 0]))  # x-axis
-            arrow_x = Arrow3D(
-                x,
-                y,
-                z,
-                body_x[0],
-                body_x[1],
-                body_x[2],
-                mutation_scale=10,
-                lw=1,
-                arrowstyle="-|>",
-                color="red",
-            )
-            self.ax.add_artist(arrow_x)
-            self.total_artists.append(arrow_x)
-
-            body_y = np.dot(R, 3 * self.arm_length * np.array([0, 1, 0]))  # y-axis
-            arrow_y = Arrow3D(
-                x,
-                y,
-                z,
-                body_y[0],
-                body_y[1],
-                body_y[2],
-                mutation_scale=10,
-                lw=1,
-                arrowstyle="-|>",
-                color="blue",
-            )
-            self.ax.add_artist(arrow_y)
-            self.total_artists.append(arrow_y)
-
-            body_z = np.dot(R, 3 * self.arm_length * np.array([0, 0, 1]))  # z-axis
-            arrow_z = Arrow3D(
-                x,
-                y,
-                z,
-                body_z[0],
-                body_z[1],
-                body_z[2],
-                mutation_scale=10,
-                lw=1,
-                arrowstyle="-|>",
-                color="green",
-            )
-            self.ax.add_artist(arrow_z)
-            self.total_artists.append(arrow_z)
+        if self.show_body_axis:
+            self._draw_body_axis(position=position, rotation_matrix=R)
 
         return self.total_artists
 
-    def _draw_propeller(
-        self, position: np.ndarray, rotation_matrix: np.ndarray
-    ) -> list:
+    def _draw_propeller(self, position: np.ndarray, rotation_matrix: np.ndarray) -> list:
         """Draw the propellers of the quadcopter
 
         Parameters
@@ -230,19 +173,10 @@ class QuadcopterDrawer(BaseDrawer):
                 prop_color = self.front_color if i < 2 else self.back_color  # alternate colors
             else:
                 prop_color = self.color
-            circle_radius = self.arm_length * 1.1 / 2
-            theta = np.linspace(0, 2 * np.pi, 20)
-
-            # rotate the vectors to match the arm orientation
-            v1 = np.dot(rotation_matrix, np.array([1, 0, 0]))
-            v2 = np.dot(rotation_matrix, np.array([0, 1, 0]))
-
-            # draw the propeller circle with thinkness
-            circle_points = np.array([end_point + circle_radius * (np.cos(t) * v1 + np.sin(t) * v2) for t in theta])
-            (prop_line,) = ax.plot(
-                circle_points[:, 0], circle_points[:, 1], circle_points[:, 2], color=prop_color, linewidth=2.5
-            )
-            artists.append(prop_line)
+            circle_radius = 1.1 * self.arm_length / 2
+            circle_height = 0.2 * self.arm_length
+            self._draw_cylinder(center=end_point, height=circle_height, radius=circle_radius, rotation_matrix=rotation_matrix, color=prop_color, alpha=1, closed=False)
+        
         self.total_artists.extend(artists)
 
     def _draw_body(
