@@ -35,13 +35,14 @@ class BaseDrawer:
 
     def __init__(self, ax):
         self.ax = ax
+        self.total_artists = []
 
     def draw(self):
         """Draw the object."""
         raise NotImplementedError("This method should be overridden by subclasses.")
 
     def draw_cylinder(
-        self, total_artists, center, height, radius, rotation_matrix, color="white", alpha=0.8, closed=False
+        self, center, height, radius, rotation_matrix, color="white", alpha=0.8, closed=False
     ):
         """Draw a cylinder in 3D space.
 
@@ -111,5 +112,4 @@ class BaseDrawer:
                 circ = ax.plot(circle_x_rot, circle_y_rot, circle_z_rot, color=color)
                 artists.append(circ[0])
 
-        total_artists.extend(artists)
-        return total_artists
+        self.total_artists.extend(artists)

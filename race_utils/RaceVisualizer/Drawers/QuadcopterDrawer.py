@@ -55,8 +55,7 @@ class QuadcopterDrawer(BaseDrawer):
 
         """
         x, y, z = position
-        artists = []
-        ax = self.ax
+        self.total_artists = []
 
         # convert attitude to rotation matrix
         if len(attitude) == 3:  # use [roll, pitch, yaw] for euler angles
@@ -67,12 +66,10 @@ class QuadcopterDrawer(BaseDrawer):
             raise ValueError("Attitude must be either Euler angles [roll, pitch, yaw] or quaternion [qx, qy, qz, qw]")
 
         # draw the quadcopter arms and propellers
-        artists = self.draw_propeller(ax=ax, total_artists=artists, position=position, rotation_matrix=R)
+        self._draw_propeller(position=position, rotation_matrix=R)
 
         # draw the body of the quadcopter
-        artists = self.draw_body(
-            ax=ax,
-            total_artists=artists,
+        self._draw_body(
             position=position,
             rotation_matrix=R,
             top_color="black",
@@ -90,8 +87,7 @@ class QuadcopterDrawer(BaseDrawer):
         cylinder_l_centers_1 = position + np.dot(R, np.array([0, 0, base_height]))
         cylinder_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
         cylinder_l_centers_2 = position + np.dot(R, np.array([0, 0, base_height]))
-        artists = self.draw_cylinder(
-            total_artists=artists,
+        self.draw_cylinder(
             center=cylinder_h_center,
             height=cylinder_height_h,
             radius=cylinder_radius,
@@ -115,8 +111,8 @@ class QuadcopterDrawer(BaseDrawer):
         x_ball += ball_h_center[0]
         y_ball += ball_h_center[1]
         z_ball += ball_h_center[2]
-        ball = ax.plot_surface(x_ball, y_ball, z_ball, color="gray", alpha=1)
-        artists.append(ball)
+        ball = self.ax.plot_surface(x_ball, y_ball, z_ball, color="gray", alpha=1)
+        self.total_artists.append(ball)
 
         # draw the body axis vector
         if show_body_axis:
@@ -133,8 +129,8 @@ class QuadcopterDrawer(BaseDrawer):
                 arrowstyle="-|>",
                 color="red",
             )
-            ax.add_artist(arrow_x)
-            artists.append(arrow_x)
+            self.ax.add_artist(arrow_x)
+            self.total_artists.append(arrow_x)
 
             body_y = np.dot(R, 3 * self.arm_length * np.array([0, 1, 0]))  # y-axis
             arrow_y = Arrow3D(
@@ -149,8 +145,8 @@ class QuadcopterDrawer(BaseDrawer):
                 arrowstyle="-|>",
                 color="blue",
             )
-            ax.add_artist(arrow_y)
-            artists.append(arrow_y)
+            self.ax.add_artist(arrow_y)
+            self.total_artists.append(arrow_y)
 
             body_z = np.dot(R, 3 * self.arm_length * np.array([0, 0, 1]))  # z-axis
             arrow_z = Arrow3D(
@@ -165,13 +161,13 @@ class QuadcopterDrawer(BaseDrawer):
                 arrowstyle="-|>",
                 color="green",
             )
-            ax.add_artist(arrow_z)
-            artists.append(arrow_z)
+            self.ax.add_artist(arrow_z)
+            self.total_artists.append(arrow_z)
 
-        return artists
+        return self.total_artists
 
-    def draw_propeller(
-        self, ax: Axes3D, total_artists: list, position: np.ndarray, rotation_matrix: np.ndarray
+    def _draw_propeller(
+        self, position: np.ndarray, rotation_matrix: np.ndarray
     ) -> list:
         """Draw the propellers of the quadcopter
 
@@ -192,6 +188,7 @@ class QuadcopterDrawer(BaseDrawer):
             List of artists created for the quadcopter, used for later updates or deletions
 
         """
+        ax = self.ax
         x, y, z = position
         quad_type = self.quad_type
         artists = []
@@ -246,13 +243,10 @@ class QuadcopterDrawer(BaseDrawer):
                 circle_points[:, 0], circle_points[:, 1], circle_points[:, 2], color=prop_color, linewidth=2.5
             )
             artists.append(prop_line)
-        total_artists.extend(artists)
-        return total_artists
+        self.total_artists.extend(artists)
 
-    def draw_body(
+    def _draw_body(
         self,
-        ax,
-        total_artists,
         position,
         rotation_matrix,
         top_color="black",
@@ -260,6 +254,7 @@ class QuadcopterDrawer(BaseDrawer):
         edge_color="white",
         alpha=0.5,
     ):
+        ax = self.ax
         base_height = 0.05 * self.arm_length
         body_height = 0.5 * self.arm_length
         half_size_l = self.arm_length * 1.3 / 2
@@ -309,5 +304,4 @@ class QuadcopterDrawer(BaseDrawer):
                 poly.set_edgecolor(edge_color)
 
             ax.add_collection3d(poly)
-            total_artists.append(poly)
-        return total_artists
+            self.total_artists.append(poly)
