@@ -542,9 +542,9 @@ class RacePlotter:
         ax,
         position: np.ndarray,
         orientation: np.ndarray,
-        color: str = "blue",
+        color: str = "black",
         quad_type: str = "X",
-        arm_length: float = 0.2,
+        arm_length: float = 2.0,
     ):
         """
         Draw a quadcopter at the given position and orientation.
@@ -558,7 +558,7 @@ class RacePlotter:
         orientation : np.ndarray
             The orientation of the quadcopter as a quaternion.
         color : str, optional
-            The color of the quadcopter, by default "blue".
+            The color of the quadcopter, by default "black".
         type : str, optional
             The type of the quadcopter, either "X" or "H", by default "X".
         arm_length : float, optional
@@ -570,11 +570,11 @@ class RacePlotter:
         """
 
         if not hasattr(self, "quadcopter_drawer"):
-            self.quadcopter_drawer = QuadcopterDrawer(arm_length=arm_length, quad_type=quad_type, color=color)
+            self.quadcopter_drawer = QuadcopterDrawer(arm_length=arm_length, quad_type=quad_type)
 
         return self.quadcopter_drawer.draw_quadcopter(ax=ax, position=position, attitude=orientation)
 
-    def create_animation(self, attitudes=None, save_path=None, fps=100, dpi=200):
+    def create_animation(self, attitudes=None, save_path=None, fps=30, dpi=200):
         """Create a 3D animation of the drone trajectory.
 
         Parameters
@@ -597,10 +597,15 @@ class RacePlotter:
             The created animation object.
         """
         # ensure positions in a right shape
-        positions = self.ps
-        # positions = positions.reshape((-1, 3))
+        total_frames = int((self.t[-1] - self.t[0]) * fps)
+        times = np.linspace(self.t[0], self.t[-1], total_frames)
+        positions = np.array(
+            [np.interp(times, self.t, self.p_x), np.interp(times, self.t, self.p_y), np.interp(times, self.t, self.p_z)]
+        ).T
+        attitudes = np.array(
+            [np.interp(times, self.t, self.q_x), np.interp(times, self.t, self.q_y), np.interp(times, self.t, self.q_z), np.interp(times, self.t, self.q_w)]
+        ).T
         time_steps = positions.shape[0]
-
         fig = plt.figure(figsize=(12, 10))
         ax = fig.add_subplot(111, projection="3d")
 
@@ -609,16 +614,26 @@ class RacePlotter:
             attitudes = np.zeros((time_steps, 4))  # default quaternion
             attitudes[:, 3] = 1.0  # set the w component to 1.0
 
-        # get the range of the positions
-        x_min, x_max = positions[:, 0].min(), positions[:, 0].max()
-        y_min, y_max = positions[:, 1].min(), positions[:, 1].max()
-        z_min, z_max = positions[:, 2].min(), positions[:, 2].max()
+        # set aspect ratio
+        x_range = self.ps[:, 0].max() - self.ps[:, 0].min()
+        y_range = self.ps[:, 1].max() - self.ps[:, 1].min()
+        z_range = self.ps[:, 2].max() - self.ps[:, 2].min()
+        max_range = max(x_range, y_range, z_range)
+        min_range_factor = 0.33
+        x_range = max(x_range, max_range * min_range_factor)
+        y_range = max(y_range, max_range * min_range_factor)
+        z_range = max(z_range, max_range * min_range_factor)
+        ax.set_box_aspect((x_range, y_range, z_range))
 
-        # adjust the limits with a margin
-        margin = 0.1 * max(x_max - x_min, y_max - y_min, z_max - z_min)
-        ax.set_xlim(x_min - margin, x_max + margin)
-        ax.set_ylim(y_min - margin, y_max + margin)
-        ax.set_zlim(z_min - margin, z_max + margin)
+        # compute ticks
+        x_ticks_count = max(min(int(x_range), 5), 3)
+        y_ticks_count = max(min(int(y_range), 5), 3)
+        z_ticks_count = max(min(int(z_range), 5), 3)
+
+        # set ticks
+        self.set_nice_ticks(ax, x_range, x_ticks_count, "x")
+        self.set_nice_ticks(ax, y_range, y_ticks_count, "y")
+        self.set_nice_ticks(ax, z_range, z_ticks_count, "z")
 
         # set the aspect ratio
         ax.set_xlabel("X [m]")
@@ -672,10 +687,9 @@ class RacePlotter:
             # draw the quadcopter
             position = positions[frame]
             attitude = attitudes[frame]
-            color = "blue"
 
             # draw the quadcopter
-            artists = self.draw_quadcopter(ax=ax, position=position, orientation=attitude, color=color)
+            artists = self.draw_quadcopter(ax=ax, position=position, orientation=attitude)
             quad_artists.extend(artists)
 
             all_artists = [line]
@@ -686,10 +700,10 @@ class RacePlotter:
         ani = animation.FuncAnimation(
             fig,
             update,
-            frames=min(time_steps, 5000),  # limit the number of frames to 300
+            frames=time_steps,
             init_func=init,
             blit=False,
-            interval=0,
+            interval=1000/fps,
         )
 
         # save the animation if a path is provided
