@@ -9,7 +9,7 @@
 
 **RaceUtils** is a Python package that provides tools for creating, manipulating, and visualizing drone race tracks. Whether you need predefined professional tracks, randomly generated courses, or custom trajectories, this library offers a comprehensive solution for drone racing simulation and training environments. If you want to learn more, refer to [Tools](#tools).
 
-https://github.com/user-attachments/assets/8d99636d-c507-4f7b-9fce-b2949c6adc42
+https://github.com/user-attachments/assets/3401105a-a257-4f92-b0de-3624a7d1632f
 
 ## Installations
 
