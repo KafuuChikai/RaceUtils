@@ -537,44 +537,9 @@ class RacePlotter:
 
         self.ax_3d.figure.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches=bbox)
 
-    def draw_quadcopter(
-        self,
-        ax,
-        position: np.ndarray,
-        orientation: np.ndarray,
-        color: str = "black",
-        quad_type: str = "X",
-        arm_length: float = 1.0,
-    ):
-        """
-        Draw a quadcopter at the given position and orientation.
-
-        Parameters
-        ----------
-        ax : Axes3D
-            The 3D axes to draw on.
-        position : np.ndarray
-            The position of the quadcopter.
-        orientation : np.ndarray
-            The orientation of the quadcopter as a quaternion.
-        color : str, optional
-            The color of the quadcopter, by default "black".
-        type : str, optional
-            The type of the quadcopter, either "X" or "H", by default "X".
-        arm_length : float, optional
-            The length of the quadcopter arms, by default 0.2.
-
-        Returns
-        -------
-        None
-        """
-
-        if not hasattr(self, "quadcopter_drawer"):
-            self.quadcopter_drawer = QuadcopterDrawer(ax=ax, arm_length=arm_length, quad_type=quad_type)
-
-        return self.quadcopter_drawer.draw(position=position, attitude=orientation)
-
-    def create_animation(self, attitudes=None, save_path=None, fps=30, dpi=200):
+    def create_animation(
+        self, save_path: Union[os.PathLike, str] = None, fps: int = 20, dpi: int = 200, drone_kwargs: dict = {}
+    ) -> animation.FuncAnimation:
         """Create a 3D animation of the drone trajectory.
 
         Parameters
@@ -596,6 +561,12 @@ class RacePlotter:
         animation : matplotlib.animation.FuncAnimation
             The created animation object.
         """
+        # initialize the quadcopter drawer
+        fig = plt.figure(figsize=(12, 10))
+        ax = fig.add_subplot(111, projection="3d")
+        self.ani_ax = ax
+        self.quadcopter_drawer = QuadcopterDrawer(ax=ax, **drone_kwargs)
+
         # ensure positions in a right shape
         total_frames = int((self.t[-1] - self.t[0]) * fps)
         times = np.linspace(self.t[0], self.t[-1], total_frames)
@@ -611,8 +582,6 @@ class RacePlotter:
             ]
         ).T
         time_steps = positions.shape[0]
-        fig = plt.figure(figsize=(12, 10))
-        ax = fig.add_subplot(111, projection="3d")
 
         # if attitudes is None, create a default attitude
         if attitudes is None:
@@ -694,7 +663,7 @@ class RacePlotter:
             attitude = attitudes[frame]
 
             # draw the quadcopter
-            artists = self.draw_quadcopter(ax=ax, position=position, orientation=attitude)
+            artists = self.quadcopter_drawer.draw(position=position, attitude=attitude)
             quad_artists.extend(artists)
 
             all_artists = [line]
