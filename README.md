@@ -11,6 +11,8 @@
 
 https://github.com/user-attachments/assets/3401105a-a257-4f92-b0de-3624a7d1632f
 
+https://github.com/user-attachments/assets/1e0c0307-f4e2-4cb0-b6dc-8d42821d5b49
+
 ## Installations
 
 For the latest development version or to contribute:
