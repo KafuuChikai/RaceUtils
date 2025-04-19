@@ -9,6 +9,7 @@ from race_utils.RaceVisualizer.track import plot_track, plot_track_3d
 from race_utils.RaceGenerator.RaceTrack import RaceTrack
 from race_utils.RaceVisualizer.Drawers.QuadcopterDrawer import QuadcopterDrawer
 from typing import Union, Optional, Tuple
+from scipy.spatial.transform import Rotation
 import yaml
 
 import os
@@ -538,7 +539,15 @@ class RacePlotter:
         self.ax_3d.figure.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches=bbox)
 
     def create_animation(
-        self, save_path: Union[os.PathLike, str] = None, fps: int = 20, dpi: int = 200, drone_kwargs: dict = {}, cmap: Colormap = plt.cm.winter.reversed()
+        self,
+        save_path: Union[os.PathLike, str] = None,
+        fps: int = 20,
+        dpi: int = 200,
+        drone_kwargs: dict = {},
+        cmap: Colormap = plt.cm.winter.reversed(),
+        traj_history: float = 0.0,
+        track_kargs: dict = {},
+        follow_drone: bool = False,
     ) -> animation.FuncAnimation:
         """Create a 3D animation of the drone trajectory.
 
@@ -567,7 +576,10 @@ class RacePlotter:
         self.ani_ax = ax
 
         # compute the plot limits
-        x_min, x_max = np.min(self.ps[:, 0]), np.max(self.ps[:, 0])
+        x_min, x_max = (
+            np.min(self.ps[:, 0]),
+            np.max(self.ps[:, 0]),
+        )
         y_min, y_max = np.min(self.ps[:, 1]), np.max(self.ps[:, 1])
         z_min, z_max = np.min(self.ps[:, 2]), np.max(self.ps[:, 2])
         max_range = max(x_max - x_min, y_max - y_min, z_max - z_min)
@@ -576,9 +588,9 @@ class RacePlotter:
         x_range = max(x_max - x_min, max_range * min_range_factor)
         y_range = max(y_max - y_min, max_range * min_range_factor)
         z_range = max(z_max - z_min, max_range * min_range_factor)
-        x_max, x_min = max(x_max, x_min + x_range), min(x_min, x_max - x_range)
-        y_max, y_min = max(y_max, y_min + y_range), min(y_min, y_max - y_range)
-        z_max, z_min = max(z_max, z_min + z_range), min(z_min, z_max - z_range)
+        x_max, x_min = max(x_max, (x_max + x_min + x_range) / 2), min(x_min, (x_max + x_min - x_range) / 2)
+        y_max, y_min = max(y_max, (y_max + y_min + y_range) / 2), min(y_min, (y_max + y_min - y_range) / 2)
+        z_max, z_min = max(z_max, (z_max + z_min + z_range) / 2), min(z_min, (z_max + z_min - z_range) / 2)
 
         # compute ticks
         x_ticks_count = max(min(int(x_range), 5), 3)
@@ -587,10 +599,11 @@ class RacePlotter:
 
         # create the quadcopter drawer
         arm_length = max(max_range / 30, 0.1)
-        self.quadcopter_drawer = QuadcopterDrawer(ax=ax, arm_length=arm_length ,**drone_kwargs)
+        self.quadcopter_drawer = QuadcopterDrawer(ax=ax, arm_length=arm_length, **drone_kwargs)
 
         # ensure positions in a right shape
         total_frames = int((self.t[-1] - self.t[0]) * fps)
+        frame_history = int(fps * traj_history)
         times = np.linspace(self.t[0], self.t[-1], total_frames)
         positions = np.array(
             [np.interp(times, self.t, self.p_x), np.interp(times, self.t, self.p_y), np.interp(times, self.t, self.p_z)]
@@ -612,6 +625,37 @@ class RacePlotter:
         quad_artists = []
         lines = []
 
+        # plot the track
+        plot_track_3d(
+            plt.gca(),
+            self.track_file,
+            **track_kargs,
+        )
+
+        # set the figure plots
+        # set the limits
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        ax.set_zlim(z_min, z_max)
+        # set the aspect ratio
+        ax.set_box_aspect((x_range, y_range, z_range))
+        # set ticks
+        self.set_nice_ticks(ax, x_range, x_ticks_count, "x")
+        self.set_nice_ticks(ax, y_range, y_ticks_count, "y")
+        self.set_nice_ticks(ax, z_range, z_ticks_count, "z")
+        # set the aspect label
+        ax.set_xlabel("x [m]", labelpad=30 * (x_range / max_range))
+        ax.set_ylabel("y [m]", labelpad=30 * (y_range / max_range))
+        ax.set_zlabel("z [m]", labelpad=30 * (z_range / max_range))
+        # set the colorbar
+        norm = plt.Normalize(vt_min, vt_max)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        shrink_factor = min(0.8, max(0.6, 0.6 * y_range / x_range))
+        colorbar_aspect = 20 * shrink_factor
+        cbar = fig.colorbar(sm, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1)
+        cbar.ax.set_ylabel("Speed [m/s]")
+
         # the initialization function
         def init():
             for line in lines:
@@ -632,44 +676,66 @@ class RacePlotter:
                     except:
                         pass
             quad_artists.clear()
-            set_plots()
             return []
 
         # the update function for each frame
         def update(frame):
+            # draw the trajectory
             if frame > 0:
-                # only update the last segment
-                if frame > 1 and hasattr(update, 'last_frame'):
-                    start_idx = update.last_frame
+                if frame_history > 0:
+                    # clear previous lines
+                    for line in lines:
+                        line.remove() if line in ax.lines else None
+                    lines.clear()
+
+                    # compute the start and end index for the trajectory
+                    start_idx = max(0, frame - frame_history)
                     end_idx = frame
-                    
-                    # compute the average velocity for the segment
-                    avg_velocity = np.mean(vt_norm[start_idx:end_idx+1])
-                    color = cmap(avg_velocity)
-                    
-                    # draw the segment
-                    segment, = ax.plot(
-                        positions[start_idx:end_idx+1, 0],
-                        positions[start_idx:end_idx+1, 1],
-                        positions[start_idx:end_idx+1, 2],
-                        color=color,
-                        linewidth=2
-                    )
-                    lines.append(segment)
+
+                    # draw the trajectory
+                    for i in range(start_idx, end_idx):
+                        color = cmap(vt_norm[i])
+                        (segment,) = ax.plot(
+                            positions[i : i + 2, 0],
+                            positions[i : i + 2, 1],
+                            positions[i : i + 2, 2],
+                            color=color,
+                            linewidth=2,
+                        )
+                        lines.append(segment)
                 else:
-                    # draw the first segment
-                    color = cmap(vt_norm[0])
-                    segment, = ax.plot(
-                        positions[0:frame+1, 0],
-                        positions[0:frame+1, 1],
-                        positions[0:frame+1, 2],
-                        color=color,
-                        linewidth=2
-                    )
-                    lines.append(segment)
-            
-            # update the last frame
-            update.last_frame = frame
+                    # only update the last segment
+                    if frame > 1 and hasattr(update, "last_frame"):
+                        start_idx = update.last_frame
+                        end_idx = frame
+
+                        # compute the average velocity for the segment
+                        avg_velocity = np.mean(vt_norm[start_idx : end_idx + 1])
+                        color = cmap(avg_velocity)
+
+                        # draw the segment
+                        (segment,) = ax.plot(
+                            positions[start_idx : end_idx + 1, 0],
+                            positions[start_idx : end_idx + 1, 1],
+                            positions[start_idx : end_idx + 1, 2],
+                            color=color,
+                            linewidth=2,
+                        )
+                        lines.append(segment)
+                    else:
+                        # draw the first segment
+                        color = cmap(vt_norm[0])
+                        (segment,) = ax.plot(
+                            positions[0 : frame + 1, 0],
+                            positions[0 : frame + 1, 1],
+                            positions[0 : frame + 1, 2],
+                            color=color,
+                            linewidth=2,
+                        )
+                        lines.append(segment)
+
+                    # update the last frame
+                    update.last_frame = frame
 
             # clear previous quadcopter artists
             for artist in quad_artists:
@@ -687,33 +753,61 @@ class RacePlotter:
             artists = self.quadcopter_drawer.draw(position=position, attitude=attitude)
             quad_artists.extend(artists)
 
+            # support follow camera
+            if follow_drone:
+                R = Rotation.from_quat(attitude).as_matrix()
+
+                # compute forward vector
+                forward_vector = R @ np.array([1, 0, 0])  # x axis forward
+
+                # set the view range
+                x_view_range = arm_length * 8
+                y_view_range = arm_length * 8
+                z_view_range = arm_length * 8
+
+                # compute the target azimuth and elevation angles
+                target_azim = (-np.degrees(np.arctan2(forward_vector[1], forward_vector[0])) + 90) % 360
+                horizontal_distance = np.sqrt(forward_vector[0] ** 2 + forward_vector[1] ** 2)
+                target_elev = -np.degrees(np.arctan2(forward_vector[2], horizontal_distance)) / 3 + 30
+
+                # smooth the camera angles
+                if not hasattr(update, "current_azim"):
+                    update.current_azim = target_azim
+                    update.current_elev = target_elev
+                else:
+                    smooth_factor = 0.15  # smooth factor, 0 < smooth_factor < 1, smaller value means smoother
+
+                    # prevent azimuth angle from jumping
+                    azim_diff = target_azim - update.current_azim
+                    if azim_diff > 180:
+                        azim_diff -= 360
+                    elif azim_diff < -180:
+                        azim_diff += 360
+
+                    update.current_azim = (update.current_azim + smooth_factor * azim_diff) % 360
+                    update.current_elev = update.current_elev + smooth_factor * (target_elev - update.current_elev)
+
+                # set the smooth azimuth and elevation angles
+                ax.view_init(elev=update.current_elev, azim=update.current_azim)
+
+                # set the camera limits
+                ax.set_xlim(position[0] - x_view_range / 2, position[0] + x_view_range / 2)
+                ax.set_ylim(position[1] - y_view_range / 2, position[1] + y_view_range / 2)
+                ax.set_zlim(position[2] - z_view_range / 2, position[2] + z_view_range / 2)
+                # set the aspect ratio
+                ax.set_box_aspect((x_view_range, y_view_range, z_view_range))
+                # set ticks
+                x_view_ticks_count = max(min(int(x_view_range), 5), 3)
+                y_view_ticks_count = max(min(int(y_view_range), 5), 3)
+                z_view_ticks_count = max(min(int(z_view_range), 5), 3)
+                self.set_nice_ticks(ax, x_view_range, x_view_ticks_count, "x")
+                self.set_nice_ticks(ax, y_view_range, y_view_ticks_count, "y")
+                self.set_nice_ticks(ax, z_view_range, z_view_ticks_count, "z")
+
+            # collect all artists
             all_artists = lines.copy()
             all_artists.extend(artists)
             return all_artists
-
-        def set_plots():
-            # set the limits
-            ax.set_xlim(x_min, x_max)
-            ax.set_ylim(y_min, y_max)
-            ax.set_zlim(z_min, z_max)
-            # set the aspect ratio
-            ax.set_box_aspect((x_range, y_range, z_range))
-            # set ticks
-            self.set_nice_ticks(ax, x_range, x_ticks_count, "x")
-            self.set_nice_ticks(ax, y_range, y_ticks_count, "y")
-            self.set_nice_ticks(ax, z_range, z_ticks_count, "z")
-            # set the aspect label
-            ax.set_xlabel("x [m]", labelpad=30 * (x_range / max_range))
-            ax.set_ylabel("y [m]", labelpad=30 * (y_range / max_range))
-            ax.set_zlabel("z [m]", labelpad=30 * (z_range / max_range))
-            # set the colorbar
-            norm = plt.Normalize(vt_min, vt_max)
-            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-            sm.set_array([])
-            shrink_factor = min(0.8, max(0.6, 0.6 * y_range / x_range))
-            colorbar_aspect = 20 * shrink_factor
-            cbar = fig.colorbar(sm, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1)
-            cbar.ax.set_ylabel("Speed [m/s]")
 
         # create the animation
         ani = animation.FuncAnimation(
