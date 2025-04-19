@@ -538,7 +538,7 @@ class RacePlotter:
         self.ax_3d.figure.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches=bbox)
 
     def create_animation(
-        self, save_path: Union[os.PathLike, str] = None, fps: int = 20, dpi: int = 200, drone_kwargs: dict = {}
+        self, save_path: Union[os.PathLike, str] = None, fps: int = 20, dpi: int = 200, drone_kwargs: dict = {}, cmap: Colormap = plt.cm.winter.reversed()
     ) -> animation.FuncAnimation:
         """Create a 3D animation of the drone trajectory.
 
@@ -565,7 +565,29 @@ class RacePlotter:
         fig = plt.figure(figsize=(12, 10))
         ax = fig.add_subplot(111, projection="3d")
         self.ani_ax = ax
-        self.quadcopter_drawer = QuadcopterDrawer(ax=ax, **drone_kwargs)
+
+        # compute the plot limits
+        x_min, x_max = np.min(self.ps[:, 0]), np.max(self.ps[:, 0])
+        y_min, y_max = np.min(self.ps[:, 1]), np.max(self.ps[:, 1])
+        z_min, z_max = np.min(self.ps[:, 2]), np.max(self.ps[:, 2])
+        max_range = max(x_max - x_min, y_max - y_min, z_max - z_min)
+        min_range_factor = 0.33
+        # update the limits
+        x_range = max(x_max - x_min, max_range * min_range_factor)
+        y_range = max(y_max - y_min, max_range * min_range_factor)
+        z_range = max(z_max - z_min, max_range * min_range_factor)
+        x_max, x_min = max(x_max, x_min + x_range), min(x_min, x_max - x_range)
+        y_max, y_min = max(y_max, y_min + y_range), min(y_min, y_max - y_range)
+        z_max, z_min = max(z_max, z_min + z_range), min(z_min, z_max - z_range)
+
+        # compute ticks
+        x_ticks_count = max(min(int(x_range), 5), 3)
+        y_ticks_count = max(min(int(y_range), 5), 3)
+        z_ticks_count = max(min(int(z_range), 5), 3)
+
+        # create the quadcopter drawer
+        arm_length = max(max_range / 30, 0.1)
+        self.quadcopter_drawer = QuadcopterDrawer(ax=ax, arm_length=arm_length ,**drone_kwargs)
 
         # ensure positions in a right shape
         total_frames = int((self.t[-1] - self.t[0]) * fps)
@@ -581,48 +603,20 @@ class RacePlotter:
                 np.interp(times, self.t, self.q_w),
             ]
         ).T
+        vt = np.interp(times, self.ts, self.vt)
+        vt_min, vt_max = self.vt.min(), self.vt.max()
+        vt_norm = (vt - vt_min) / (vt_max - vt_min) if vt_max > vt_min else 0.5
         time_steps = positions.shape[0]
-
-        # if attitudes is None, create a default attitude
-        if attitudes is None:
-            attitudes = np.zeros((time_steps, 4))  # default quaternion
-            attitudes[:, 3] = 1.0  # set the w component to 1.0
-
-        # set aspect ratio
-        x_range = self.ps[:, 0].max() - self.ps[:, 0].min()
-        y_range = self.ps[:, 1].max() - self.ps[:, 1].min()
-        z_range = self.ps[:, 2].max() - self.ps[:, 2].min()
-        max_range = max(x_range, y_range, z_range)
-        min_range_factor = 0.33
-        x_range = max(x_range, max_range * min_range_factor)
-        y_range = max(y_range, max_range * min_range_factor)
-        z_range = max(z_range, max_range * min_range_factor)
-        ax.set_box_aspect((x_range, y_range, z_range))
-
-        # compute ticks
-        x_ticks_count = max(min(int(x_range), 5), 3)
-        y_ticks_count = max(min(int(y_range), 5), 3)
-        z_ticks_count = max(min(int(z_range), 5), 3)
-
-        # set ticks
-        self.set_nice_ticks(ax, x_range, x_ticks_count, "x")
-        self.set_nice_ticks(ax, y_range, y_ticks_count, "y")
-        self.set_nice_ticks(ax, z_range, z_ticks_count, "z")
-
-        # set the aspect ratio
-        ax.set_xlabel("X [m]")
-        ax.set_ylabel("Y [m]")
-        ax.set_zlabel("Z [m]")
 
         # create lines for the drone
         quad_artists = []
-        color = "blue"
-        (line,) = ax.plot([], [], [], color=color, linewidth=2, label="Drone")
+        lines = []
 
         # the initialization function
         def init():
-            line.set_data([], [])
-            line.set_3d_properties([])
+            for line in lines:
+                line.remove() if line in ax.lines else None
+            lines.clear()
 
             # clear previous quadcopter artists
             for artist in quad_artists:
@@ -638,17 +632,44 @@ class RacePlotter:
                     except:
                         pass
             quad_artists.clear()
-
-            return line
+            set_plots()
+            return []
 
         # the update function for each frame
         def update(frame):
-            # get the current position
-            x = positions[: frame + 1, 0]
-            y = positions[: frame + 1, 1]
-            z = positions[: frame + 1, 2]
-            line.set_data(x, y)
-            line.set_3d_properties(z)
+            if frame > 0:
+                # only update the last segment
+                if frame > 1 and hasattr(update, 'last_frame'):
+                    start_idx = update.last_frame
+                    end_idx = frame
+                    
+                    # compute the average velocity for the segment
+                    avg_velocity = np.mean(vt_norm[start_idx:end_idx+1])
+                    color = cmap(avg_velocity)
+                    
+                    # draw the segment
+                    segment, = ax.plot(
+                        positions[start_idx:end_idx+1, 0],
+                        positions[start_idx:end_idx+1, 1],
+                        positions[start_idx:end_idx+1, 2],
+                        color=color,
+                        linewidth=2
+                    )
+                    lines.append(segment)
+                else:
+                    # draw the first segment
+                    color = cmap(vt_norm[0])
+                    segment, = ax.plot(
+                        positions[0:frame+1, 0],
+                        positions[0:frame+1, 1],
+                        positions[0:frame+1, 2],
+                        color=color,
+                        linewidth=2
+                    )
+                    lines.append(segment)
+            
+            # update the last frame
+            update.last_frame = frame
 
             # clear previous quadcopter artists
             for artist in quad_artists:
@@ -666,9 +687,33 @@ class RacePlotter:
             artists = self.quadcopter_drawer.draw(position=position, attitude=attitude)
             quad_artists.extend(artists)
 
-            all_artists = [line]
+            all_artists = lines.copy()
             all_artists.extend(artists)
             return all_artists
+
+        def set_plots():
+            # set the limits
+            ax.set_xlim(x_min, x_max)
+            ax.set_ylim(y_min, y_max)
+            ax.set_zlim(z_min, z_max)
+            # set the aspect ratio
+            ax.set_box_aspect((x_range, y_range, z_range))
+            # set ticks
+            self.set_nice_ticks(ax, x_range, x_ticks_count, "x")
+            self.set_nice_ticks(ax, y_range, y_ticks_count, "y")
+            self.set_nice_ticks(ax, z_range, z_ticks_count, "z")
+            # set the aspect label
+            ax.set_xlabel("x [m]", labelpad=30 * (x_range / max_range))
+            ax.set_ylabel("y [m]", labelpad=30 * (y_range / max_range))
+            ax.set_zlabel("z [m]", labelpad=30 * (z_range / max_range))
+            # set the colorbar
+            norm = plt.Normalize(vt_min, vt_max)
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])
+            shrink_factor = min(0.8, max(0.6, 0.6 * y_range / x_range))
+            colorbar_aspect = 20 * shrink_factor
+            cbar = fig.colorbar(sm, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1)
+            cbar.ax.set_ylabel("Speed [m/s]")
 
         # create the animation
         ani = animation.FuncAnimation(
