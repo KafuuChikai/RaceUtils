@@ -548,6 +548,8 @@ class RacePlotter:
         traj_history: float = 0.0,
         track_kargs: dict = {},
         follow_drone: bool = False,
+        hide_background: bool = False,
+        hide_ground: bool = False,
     ) -> animation.FuncAnimation:
         """Create a 3D animation of the drone trajectory.
 
@@ -598,7 +600,10 @@ class RacePlotter:
         z_ticks_count = max(min(int(z_range), 5), 3)
 
         # create the quadcopter drawer
-        arm_length = max(max_range / 30, 0.1)
+        if follow_drone:
+            arm_length = 0.2  # use the fixed arm length
+        else:
+            arm_length = max(max_range / 30, 0.2)
         self.quadcopter_drawer = QuadcopterDrawer(ax=ax, arm_length=arm_length, **drone_kwargs)
 
         # ensure positions in a right shape
@@ -648,13 +653,48 @@ class RacePlotter:
         ax.set_ylabel("y [m]", labelpad=30 * (y_range / max_range))
         ax.set_zlabel("z [m]", labelpad=30 * (z_range / max_range))
         # set the colorbar
-        norm = plt.Normalize(vt_min, vt_max)
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-        sm.set_array([])
-        shrink_factor = min(0.8, max(0.6, 0.6 * y_range / x_range))
-        colorbar_aspect = 20 * shrink_factor
-        cbar = fig.colorbar(sm, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1)
-        cbar.ax.set_ylabel("Speed [m/s]")
+        if not hide_background:
+            norm = plt.Normalize(vt_min, vt_max)
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])
+            shrink_factor = min(0.8, max(0.6, 0.6 * y_range / x_range))
+            colorbar_aspect = 20 * shrink_factor
+            cbar = fig.colorbar(sm, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1)
+            cbar.ax.set_ylabel("Speed [m/s]")
+        elif hide_background:
+            # set background color to empty
+            ax.xaxis.pane.fill = False
+            ax.yaxis.pane.fill = False
+            ax.zaxis.pane.fill = False
+
+            # hide pane lines
+            ax.xaxis.pane.set_edgecolor("none")
+            ax.yaxis.pane.set_edgecolor("none")
+            ax.zaxis.pane.set_edgecolor("none")
+
+            ax.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+            ax.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+            ax.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+
+            if not hide_ground:
+                # scale the ground
+                scale_factor = 1.5
+                x_min_ground = (x_min + x_max) / 2 - (x_range * scale_factor / 2)
+                x_max_ground = (x_min + x_max) / 2 + (x_range * scale_factor / 2)
+                y_min_ground = (y_min + y_max) / 2 - (y_range * scale_factor / 2)
+                y_max_ground = (y_min + y_max) / 2 + (y_range * scale_factor / 2)
+
+                xx, yy = np.meshgrid(
+                    np.linspace(x_min_ground, x_max_ground, 15), np.linspace(y_min_ground, y_max_ground, 15)
+                )
+                zz = np.ones_like(xx) * z_min
+                # draw the ground
+                ground_surface = ax.plot_surface(xx, yy, zz, color="gray", alpha=0.05, shade=True, edgecolor="none")
+                # draw the wireframe
+                ground_wireframe = ax.plot_wireframe(xx, yy, zz, color="gray", alpha=0.5, linewidth=0.5)
+                ax.set_xlim(x_min_ground, x_max_ground)
+                ax.set_ylim(y_min_ground, y_max_ground)
+                ax.set_box_aspect([x_range * scale_factor, y_range * scale_factor, z_range])
 
         # the initialization function
         def init():
@@ -761,9 +801,9 @@ class RacePlotter:
                 forward_vector = R @ np.array([1, 0, 0])  # x axis forward
 
                 # set the view range
-                x_view_range = arm_length * 8
-                y_view_range = arm_length * 8
-                z_view_range = arm_length * 8
+                x_view_range = arm_length * 12
+                y_view_range = arm_length * 12
+                z_view_range = arm_length * 12
 
                 # compute the target azimuth and elevation angles
                 target_azim = (-np.degrees(np.arctan2(forward_vector[1], forward_vector[0])) + 90) % 360
@@ -775,7 +815,7 @@ class RacePlotter:
                     update.current_azim = target_azim
                     update.current_elev = target_elev
                 else:
-                    smooth_factor = 0.15  # smooth factor, 0 < smooth_factor < 1, smaller value means smoother
+                    smooth_factor = 0.10  # smooth factor, 0 < smooth_factor < 1, smaller value means smoother
 
                     # prevent azimuth angle from jumping
                     azim_diff = target_azim - update.current_azim
@@ -803,6 +843,21 @@ class RacePlotter:
                 self.set_nice_ticks(ax, x_view_range, x_view_ticks_count, "x")
                 self.set_nice_ticks(ax, y_view_range, y_view_ticks_count, "y")
                 self.set_nice_ticks(ax, z_view_range, z_view_ticks_count, "z")
+
+            if hide_background:
+                for ax_temp in fig.axes:
+                    if hasattr(ax_temp, "orientation") or ax_temp != ax:
+                        fig.delaxes(ax_temp)
+                # fig.set_size_inches(12, 8)
+
+                # hide all axis ticks
+                ax.set_xticks([])
+                ax.set_yticks([])
+                ax.set_zticks([])
+                # hide all axis labels
+                ax.set_xlabel("")
+                ax.set_ylabel("")
+                ax.set_zlabel("")
 
             # collect all artists
             all_artists = lines.copy()
