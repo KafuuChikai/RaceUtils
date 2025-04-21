@@ -600,10 +600,9 @@ class RacePlotter:
         z_ticks_count = max(min(int(z_range), 5), 3)
 
         # create the quadcopter drawer
-        if follow_drone:
-            arm_length = 0.2  # use the fixed arm length
-        else:
-            arm_length = max(max_range / 30, 0.2)
+        arm_length = drone_kwargs.get("arm_length", 0.2)
+        if not follow_drone:
+            arm_length = max(max_range / 30, 0.2)  # automatically set arm length
         self.quadcopter_drawer = QuadcopterDrawer(ax=ax, arm_length=arm_length, **drone_kwargs)
 
         # ensure positions in a right shape
