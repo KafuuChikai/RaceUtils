@@ -2,6 +2,7 @@ import numpy as np
 import yaml
 
 from race_utils.RaceGenerator.RaceTrack import RaceTrack
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 def rpy_to_rotation_matrix(rpy):
@@ -136,7 +137,7 @@ def plot_track_3d(
         if g["type"] == "FreeCorridor":
             raise NotImplementedError("Not support plotting FreeCorridor gate")
 
-        args = {"linewidth": 3.0, "markersize": 5.0, "color": "black"}
+        args = {"linewidth": 9.0, "markersize": 15.0, "color": "gray"}
 
         if g["type"] == "SingleBall":
             position = g["position"]
@@ -179,14 +180,81 @@ def plot_track_3d(
             if set_height is not None:
                 hh = 0.5 * (set_height - set_margin)
             drift = 0.0
-            verts = [
-                [-hh, hw, drift],
-                [-hh, -hw, drift],
-                [hh, -hw, drift],
-                [hh, hw, drift],
-                [-hh, hw, drift],
-            ] @ R.T + np.array(position).reshape((1, 3))
-            ax.plot(verts[:, 0], verts[:, 1], verts[:, 2], "o-", **args)
+            thickness = 0.1 * min(hw, hh)
+
+            front_outer_verts = np.array(
+                [
+                    [-hh, hw, -thickness / 2],
+                    [-hh, -hw, -thickness / 2],
+                    [hh, -hw, -thickness / 2],
+                    [hh, hw, -thickness / 2],
+                ]
+            ) @ R.T + np.array(position).reshape((1, 3))
+
+            inner_scale = 0.8
+            front_inner_verts = np.array(
+                [
+                    [-hh * inner_scale, hw * inner_scale, -thickness / 2],
+                    [-hh * inner_scale, -hw * inner_scale, -thickness / 2],
+                    [hh * inner_scale, -hw * inner_scale, -thickness / 2],
+                    [hh * inner_scale, hw * inner_scale, -thickness / 2],
+                ]
+            ) @ R.T + np.array(position).reshape((1, 3))
+
+            back_outer_verts = np.array(
+                [
+                    [-hh, hw, thickness / 2],
+                    [-hh, -hw, thickness / 2],
+                    [hh, -hw, thickness / 2],
+                    [hh, hw, thickness / 2],
+                ]
+            ) @ R.T + np.array(position).reshape((1, 3))
+
+            back_inner_verts = np.array(
+                [
+                    [-hh * inner_scale, hw * inner_scale, thickness / 2],
+                    [-hh * inner_scale, -hw * inner_scale, thickness / 2],
+                    [hh * inner_scale, -hw * inner_scale, thickness / 2],
+                    [hh * inner_scale, hw * inner_scale, thickness / 2],
+                ]
+            ) @ R.T + np.array(position).reshape((1, 3))
+
+            faces = []
+
+            front_ring = [
+                [front_outer_verts[0], front_outer_verts[1], front_inner_verts[1], front_inner_verts[0]],  # 左侧
+                [front_outer_verts[1], front_outer_verts[2], front_inner_verts[2], front_inner_verts[1]],  # 底部
+                [front_outer_verts[2], front_outer_verts[3], front_inner_verts[3], front_inner_verts[2]],  # 右侧
+                [front_outer_verts[3], front_outer_verts[0], front_inner_verts[0], front_inner_verts[3]],  # 顶部
+            ]
+            faces.extend(front_ring)
+
+            back_ring = [
+                [back_outer_verts[0], back_outer_verts[1], back_inner_verts[1], back_inner_verts[0]],  # 左侧
+                [back_outer_verts[1], back_outer_verts[2], back_inner_verts[2], back_inner_verts[1]],  # 底部
+                [back_outer_verts[2], back_outer_verts[3], back_inner_verts[3], back_inner_verts[2]],  # 右侧
+                [back_outer_verts[3], back_outer_verts[0], back_inner_verts[0], back_inner_verts[3]],  # 顶部
+            ]
+            faces.extend(back_ring)
+
+            outer_sides = [
+                [front_outer_verts[0], front_outer_verts[1], back_outer_verts[1], back_outer_verts[0]],  # 左外侧
+                [front_outer_verts[1], front_outer_verts[2], back_outer_verts[2], back_outer_verts[1]],  # 底外侧
+                [front_outer_verts[2], front_outer_verts[3], back_outer_verts[3], back_outer_verts[2]],  # 右外侧
+                [front_outer_verts[3], front_outer_verts[0], back_outer_verts[0], back_outer_verts[3]],  # 顶外侧
+            ]
+            faces.extend(outer_sides)
+
+            inner_sides = [
+                [front_inner_verts[0], front_inner_verts[1], back_inner_verts[1], back_inner_verts[0]],  # 左内侧
+                [front_inner_verts[1], front_inner_verts[2], back_inner_verts[2], back_inner_verts[1]],  # 底内侧
+                [front_inner_verts[2], front_inner_verts[3], back_inner_verts[3], back_inner_verts[2]],  # 右内侧
+                [front_inner_verts[3], front_inner_verts[0], back_inner_verts[0], back_inner_verts[3]],  # 顶内侧
+            ]
+            faces.extend(inner_sides)
+
+            poly = Poly3DCollection(faces, facecolors="darkblue", alpha=0.1, edgecolors="gray", linewidths=1.0)
+            ax.add_collection3d(poly)
 
         elif g["type"] == "PentagonPrisma":
             position = g["position"]
