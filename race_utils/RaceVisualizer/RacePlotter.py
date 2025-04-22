@@ -8,7 +8,7 @@ import matplotlib.animation as animation
 from race_utils.RaceVisualizer.track import plot_track, plot_track_3d
 from race_utils.RaceGenerator.RaceTrack import RaceTrack
 from race_utils.RaceVisualizer.Drawers.QuadcopterDrawer import QuadcopterDrawer
-from typing import Union, Optional, Tuple
+from typing import Union, Optional, Tuple, List
 from scipy.spatial.transform import Rotation
 import yaml
 
@@ -70,14 +70,30 @@ class BasePlotter:
         self.vt = vt
 
         # initialize the plot
-        self._fig_2d = plt.figure(figsize=(8, 6))
-        self.ax_2d = self._fig_2d.add_subplot(111)
+        self._fig_2d = None
+        self.ax_2d = None
+        self._fig_3d = None
+        self.ax_3d = None
+        self._fig_ani = None
+        self.ani_ax = None
 
-        self._fig_3d = plt.figure(figsize=(12, 8))
-        self.ax_3d = self._fig_3d.add_axes([0, 0, 1, 1], projection="3d")
+    def _ensure_2d_fig_exists(self):
+        if self._fig_2d is None:
+            self._fig_2d = plt.figure(figsize=(8, 6))
+            self.ax_2d = self._fig_2d.add_subplot(111)
+        return self._fig_2d, self.ax_2d
 
-        self._fig_ani = plt.figure(figsize=(12, 10))
-        self.ani_ax = self._fig_ani.add_subplot(111, projection="3d")
+    def _ensure_3d_fig_exists(self):
+        if self._fig_3d is None:
+            self._fig_3d = plt.figure(figsize=(12, 8))
+            self.ax_3d = self._fig_3d.add_axes([0, 0, 1, 1], projection="3d")
+        return self._fig_3d, self.ax_3d
+
+    def _ensure_ani_fig_exists(self):
+        if self._fig_ani is None:
+            self._fig_ani = plt.figure(figsize=(12, 10))
+            self.ani_ax = self._fig_ani.add_subplot(111, projection="3d")
+        return self._fig_ani, self.ani_ax
 
     def plot_show(self):
         plt.show()
@@ -195,6 +211,50 @@ class BasePlotter:
             ax.yaxis.set_major_locator(locator)
         else:  # 'z'
             ax.zaxis.set_major_locator(locator)
+
+
+class BasePlotterList:
+    """
+    Class for chaining BasePlotter objects together.
+
+    Parameters
+    ----------
+    plotters : list
+        List of plotters to be chained together.
+
+    """
+
+    def __init__(self, plotters: List[BasePlotter]):
+        assert isinstance(plotters, list)
+        self.plotters = plotters
+
+    def plot(self, **kwargs):
+        for i, plotter in enumerate(self.plotters):
+            kwargs["fig_name"] = kwargs.get("fig_name", "racetrack")
+            kwargs["fig_name"] += f"_drone{i + 1}_2d"
+            kwargs["fig_title"] = kwargs.get("fig_title", "racetrack")
+            kwargs["fig_title"] += f" (drone {i + 1})"
+            plotter.plot(**kwargs)
+
+    def plot3d(self, **kwargs):
+        for i, plotter in enumerate(self.plotters):
+            kwargs["fig_name"] = kwargs.get("fig_name", "racetrack")
+            kwargs["fig_name"] += f"_drone{i + 1}_3d"
+            kwargs["fig_title"] = kwargs.get("fig_title", "racetrack")
+            kwargs["fig_title"] += f" (drone {i + 1})"
+            plotter.plot3d(**kwargs)
+
+    def create_animation(self, **kwargs):
+        for i, plotter in enumerate(self.plotters):
+            video_full_name = kwargs.get("video_name", "racetrack")
+            video_name, ext = os.path.splitext(video_full_name)
+            if not ext:
+                ext = ".mp4"
+            kwargs["video_name"] = f"{video_name}_drone{i + 1}{ext}"
+            plotter.create_animation(**kwargs)
+
+    def plot_show(self):
+        plt.show()
 
 
 class RacePlotter(BasePlotter):
@@ -333,6 +393,7 @@ class RacePlotter(BasePlotter):
         alpha: float = 0.01,
         tube_rate: float = 6,
     ):
+        self._ensure_2d_fig_exists()
         fig = self._fig_2d
         ax = self.ax_2d
         ps = self.ps
@@ -385,7 +446,7 @@ class RacePlotter(BasePlotter):
         outer_radius: float = 2.0,
         rate: float = 6,
     ):
-
+        self._ensure_2d_fig_exists()
         ax = self.ax_2d
         ts = self.ts
         ps = self.ps
@@ -441,6 +502,7 @@ class RacePlotter(BasePlotter):
         tube_rate: float = 6,
         shade: bool = True,
     ):
+        self._ensure_3d_fig_exists()
         fig = self._fig_3d
         ax = self.ax_3d
 
@@ -531,7 +593,7 @@ class RacePlotter(BasePlotter):
         rate: float = 6,
         shade: bool = True,
     ):
-
+        self._ensure_3d_fig_exists()
         ax = self.ax_3d
         ts = self.ts
         ps = self.ps
@@ -565,6 +627,7 @@ class RacePlotter(BasePlotter):
     def create_animation(
         self,
         save_path: Union[os.PathLike, str] = None,
+        video_name: str = "drone_animation.mp4",
         fps: int = 20,
         dpi: int = 200,
         drone_kwargs: dict = {},
@@ -596,6 +659,7 @@ class RacePlotter(BasePlotter):
         animation : matplotlib.animation.FuncAnimation
             The created animation object.
         """
+        self._ensure_ani_fig_exists()
         fig = self._fig_ani
         ax = self.ani_ax
         # compute the plot limits
@@ -896,7 +960,7 @@ class RacePlotter(BasePlotter):
 
         # save the animation if a path is provided
         if save_path is not None:
-            ani.save(save_path, writer="ffmpeg", fps=fps, dpi=dpi)
+            ani.save(os.path.join(save_path, video_name), writer="ffmpeg", fps=fps, dpi=dpi)
             print(f"The animation is saved at {save_path}")
 
         return ani
