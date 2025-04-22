@@ -13,6 +13,8 @@
 3. [Visualizations](#visualizations)
    - [3.1 Trajectories](#1-trajectories)
    - [3.2 Trajectories with tubes](#2-trajectories-with-tubes)
+   - [3.3 Animations](#3-animations)
+4. [Tools](#tools)
 
 ## Installations
 
@@ -61,6 +63,13 @@ The random trajectory examples:
     <td style="width:50%;"><img src="docs/3d_tube/race_uzh_19g_3d.png" alt="race_uzh_19g_3d" style="width:100%;"/></td>
   </tr>
 </table>
+
+### 3. Animations
+
+|  |  |
+| :---------- | :---------- |
+| <img src="docs/animations/Star_5_single_drone1_3d.png" /> | <video src="https://github.com/user-attachments/assets/3b0836a2-5f65-41a6-bb40-023390bcd4c4" /> |
+| <img src="docs/animations/UZH_single_drone1_3d.png" /> | <video src="https://github.com/user-attachments/assets/e59134fe-9ab4-4757-a27d-81a9c0fb0b16" /> |
 
 ## Tools
 
