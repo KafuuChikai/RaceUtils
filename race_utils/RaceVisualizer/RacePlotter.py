@@ -228,7 +228,7 @@ class BasePlotterList:
         assert isinstance(plotters, list)
         self.plotters = plotters
 
-    def plot(self, **kwargs):
+    def plot(self, **kwargs) -> None:
         for i, plotter in enumerate(self.plotters):
             kwargs["fig_name"] = kwargs.get("fig_name", "racetrack")
             kwargs["fig_name"] += f"_drone{i + 1}_2d"
@@ -236,7 +236,7 @@ class BasePlotterList:
             kwargs["fig_title"] += f" (drone {i + 1})"
             plotter.plot(**kwargs)
 
-    def plot3d(self, **kwargs):
+    def plot3d(self, **kwargs) -> None:
         for i, plotter in enumerate(self.plotters):
             kwargs["fig_name"] = kwargs.get("fig_name", "racetrack")
             kwargs["fig_name"] += f"_drone{i + 1}_3d"
@@ -244,14 +244,17 @@ class BasePlotterList:
             kwargs["fig_title"] += f" (drone {i + 1})"
             plotter.plot3d(**kwargs)
 
-    def create_animation(self, **kwargs):
+    def create_animation(self, **kwargs) -> List[animation.FuncAnimation]:
+        ani_list = []
         for i, plotter in enumerate(self.plotters):
             video_full_name = kwargs.get("video_name", "racetrack")
             video_name, ext = os.path.splitext(video_full_name)
             if not ext:
                 ext = ".mp4"
             kwargs["video_name"] = f"{video_name}_drone{i + 1}{ext}"
-            plotter.create_animation(**kwargs)
+            ani = plotter.create_animation(**kwargs)
+            ani_list.append(ani)
+        return ani_list
 
     def plot_show(self):
         plt.show()
