@@ -26,7 +26,7 @@ class BasePlotter:
     def __init__(
         self,
         traj_file: Union[os.PathLike, str, np.ndarray],
-        track_file: Union[os.PathLike, str, RaceTrack],
+        track_file: Union[os.PathLike, str, RaceTrack] = None,
         wpt_path: Optional[Union[os.PathLike, str]] = None,
     ):
         if isinstance(traj_file, np.ndarray):
@@ -34,7 +34,10 @@ class BasePlotter:
         else:
             data_ocp = np.genfromtxt(traj_file, dtype=float, delimiter=",", names=True)
 
-        self.track_file = track_file if isinstance(track_file, RaceTrack) else os.fspath(track_file)
+        if track_file is not None:
+            self.track_file = track_file if isinstance(track_file, RaceTrack) else os.fspath(track_file)
+        else:
+            self.track_file = None
         if wpt_path is not None:
             self.wpt_path = os.fspath(wpt_path)
 
@@ -167,15 +170,7 @@ class BasePlotter:
             self.ax_3d.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
             self.ax_3d.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
 
-            if hide_ground:
-                bbox = Bbox.from_bounds(1.15, 2.05, 7.5, 3.6)
-                # bbox = Bbox.from_bounds(2.2, 2.6, 6.0, 3.0)
-            else:
-                bbox = Bbox.from_bounds(1.05, 1.45, 8, 4)
-        else:
-            bbox = "tight"
-
-        self.ax_3d.figure.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches=bbox)
+        self.ax_3d.figure.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches="tight")
 
     def set_nice_ticks(self, ax: matplotlib.axes.Axes, range_val: float, ticks_count: int, axis: str = "x"):
         ticks_interval = range_val / (ticks_count - 1)
@@ -206,7 +201,7 @@ class RacePlotter(BasePlotter):
     def __init__(
         self,
         traj_file: Union[os.PathLike, str, np.ndarray],
-        track_file: Union[os.PathLike, str, RaceTrack],
+        track_file: Union[os.PathLike, str, RaceTrack] = None,
         wpt_path: Optional[Union[os.PathLike, str]] = None,
     ):
         super().__init__(traj_file=traj_file, track_file=track_file, wpt_path=wpt_path)
@@ -360,7 +355,8 @@ class RacePlotter(BasePlotter):
         sc = ax.scatter(ps[:, 0], ps[:, 1], s=5, c=vt, cmap=cmap)
         fig.colorbar(sc, ax=ax, pad=0.01).ax.set_ylabel("Speed [m/s]")
 
-        plot_track(ax, self.track_file, set_radius=radius, set_width=width, set_height=height, set_margin=margin)
+        if self.track_file is not None:
+            plot_track(ax, self.track_file, set_radius=radius, set_width=width, set_height=height, set_margin=margin)
 
         if fig_title is not None:
             ax.set_title(fig_title, fontsize=26)
@@ -494,16 +490,17 @@ class RacePlotter(BasePlotter):
         colorbar_aspect = 20 * shrink_factor
         fig.colorbar(sc, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1).ax.set_ylabel("Speed [m/s]")
 
-        plot_track_3d(
-            ax,
-            self.track_file,
-            set_radius=radius,
-            set_width=width,
-            set_height=height,
-            set_margin=margin,
-            color=gate_color,
-            gate_alpha=gate_alpha,
-        )
+        if self.track_file is not None:
+            plot_track_3d(
+                ax,
+                self.track_file,
+                set_radius=radius,
+                set_width=width,
+                set_height=height,
+                set_margin=margin,
+                color=gate_color,
+                gate_alpha=gate_alpha,
+            )
 
         if fig_title is not None:
             fig.text(0.5, 0.95, fig_title, fontsize=26, horizontalalignment="center", verticalalignment="top")
@@ -654,11 +651,12 @@ class RacePlotter(BasePlotter):
         lines = []
 
         # plot the track
-        plot_track_3d(
-            ax,
-            self.track_file,
-            **track_kargs,
-        )
+        if self.track_file is not None:
+            plot_track_3d(
+                ax,
+                self.track_file,
+                **track_kargs,
+            )
 
         # set the figure plots
         # set the limits
