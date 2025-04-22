@@ -1,17 +1,18 @@
 # RaceUtils
 
-<table>
-  <tr>
-    <td style="width:50%;"><img src="docs/cover/race_uzh_19g_3d.png" alt="race_uzh_19g_3d" style="width:100%;"/></td>
-    <td style="width:50%;"><img src="docs/cover/figure8_3d.png" alt="figure8_3d" style="width:100%;"/></td>
-  </tr>
-</table>
+|  |  |
+| :---------- | :---------- |
+| <video src="https://github.com/user-attachments/assets/1e0c0307-f4e2-4cb0-b6dc-8d42821d5b49" /> | <video src="https://github.com/user-attachments/assets/3401105a-a257-4f92-b0de-3624a7d1632f" /> |
 
 **RaceUtils** is a Python package that provides tools for creating, manipulating, and visualizing drone race tracks. Whether you need predefined professional tracks, randomly generated courses, or custom trajectories, this library offers a comprehensive solution for drone racing simulation and training environments. If you want to learn more, refer to [Tools](#tools).
 
-https://github.com/user-attachments/assets/3401105a-a257-4f92-b0de-3624a7d1632f
+## Table of Contents
 
-https://github.com/user-attachments/assets/1e0c0307-f4e2-4cb0-b6dc-8d42821d5b49
+1. [Installations](#installations)
+2. [Examples](#examples)
+3. [Visualizations](#visualizations)
+   - [3.1 Trajectories](#1-trajectories)
+   - [3.2 Trajectories with tubes](#2-trajectories-with-tubes)
 
 ## Installations
 
@@ -26,17 +27,13 @@ cd RaceUtils
 pip install -e .
 ```
 
+## Examples
+
+Coming soon ...
+
 ## Visualizations
 
-### 1. Predefined trajectory
-
-You can get a predefined trajectory below:
-
-<p>
-  <img src="docs/predefined_trajectory/plan_race_example.png" alt="plan_race_example" width="50%" />
-</p>
-
-### 2. Random trajectories
+### 1. Trajectories
 
 The random trajectory examples:
 
@@ -47,30 +44,10 @@ The random trajectory examples:
   </tr>
 </table>
 
-<table>
-  <tr>
-    <td style="width:50%;"><img src="docs/random_race_example/race_3.png" alt="race_3" style="width:100%;"/></td>
-    <td style="width:50%;"><img src="docs/random_race_example/race_4.png" alt="race_4" style="width:100%;"/></td>
-  </tr>
-</table>
-
-<table>
-  <tr>
-    <td style="width:50%;"><img src="docs/random_race_example/race_5.png" alt="race_5" style="width:100%;"/></td>
-    <td style="width:50%;"><img src="docs/random_race_example/race_6.png" alt="race_6" style="width:100%;"/></td>
-  </tr>
-</table>
-
-### 3. 3D trajectories with Tube
+### 2. Trajectories with tubes
 
 **Update**: Plot 3D trajectories and visulize with Tube.
 
-<table>
-  <tr>
-    <td style="width:50%;"><img src="docs/3d_tube/random_example_2d.png" alt="random_example_2d" style="width:100%;"/></td>
-    <td style="width:50%;"><img src="docs/3d_tube/random_example_3d.png" alt="random_example_3d" style="width:100%;"/></td>
-  </tr>
-</table>
 <table>
   <tr>
     <td style="width:50%;"><img src="docs/3d_tube/figure8_2d.png" alt="figure8_2d" style="width:100%;"/></td>
