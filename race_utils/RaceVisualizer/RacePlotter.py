@@ -77,6 +77,9 @@ class BasePlotter:
         self._fig_ani = None
         self.ani_ax = None
 
+    def load_track(self, track_file: Union[os.PathLike, str, RaceTrack]) -> None:
+        self.track_file = track_file if isinstance(track_file, RaceTrack) else os.fspath(track_file)
+
     def _ensure_2d_fig_exists(self) -> Tuple[plt.Figure, plt.Axes]:
         if self._fig_2d is None:
             self._fig_2d = plt.figure(figsize=(8, 6))
@@ -227,6 +230,13 @@ class BasePlotterList:
     def __init__(self, plotters: List[BasePlotter]):
         assert isinstance(plotters, list)
         self.plotters = plotters
+        self.num_plotters = len(plotters)
+
+    def load_track(self, track_file: Union[os.PathLike, str, RaceTrack], index: Optional[list] = None) -> None:
+        if index is None:
+            index = list(range(self.num_plotters))
+        for i in index:
+            self.plotters[i].load_track(track_file)
 
     def plot(self, **kwargs) -> None:
         for i, plotter in enumerate(self.plotters):
