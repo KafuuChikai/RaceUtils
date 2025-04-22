@@ -4,7 +4,7 @@
 | :---------- | :---------- |
 | <video src="https://github.com/user-attachments/assets/1e0c0307-f4e2-4cb0-b6dc-8d42821d5b49" /> | <video src="https://github.com/user-attachments/assets/3401105a-a257-4f92-b0de-3624a7d1632f" /> |
 
-**RaceUtils** is a Python package that provides tools for creating, manipulating, and visualizing drone race tracks. Whether you need predefined professional tracks, randomly generated courses, or custom trajectories, this library offers a comprehensive solution for drone racing simulation and training environments. If you want to learn more, refer to [Tools](#tools).
+**RaceUtils** is a Python package that provides tools for creating, manipulating, and visualizing drone race tracks. Whether you need predefined professional tracks, randomly generated courses, or custom trajectories, this library offers a comprehensive solution for drone racing simulation and training environments. To learn more, refer to [Tools](#tools).
 
 ## Table of Contents
 
@@ -48,7 +48,7 @@ The random trajectory examples:
 
 ### 2. Trajectories with tubes
 
-**Update**: Plot 3D trajectories and visulize with Tube.
+Plot 3D trajectories and visualize them with a tube.
 
 <table>
   <tr>
@@ -65,6 +65,8 @@ The random trajectory examples:
 </table>
 
 ### 3. Animations
+
+Create animations for flight details:
 
 |  |  |
 | :---------- | :---------- |
