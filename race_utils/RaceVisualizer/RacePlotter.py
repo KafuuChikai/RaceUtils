@@ -77,40 +77,40 @@ class BasePlotter:
         self._fig_ani = None
         self.ani_ax = None
 
-    def _ensure_2d_fig_exists(self):
+    def _ensure_2d_fig_exists(self) -> Tuple[plt.Figure, plt.Axes]:
         if self._fig_2d is None:
             self._fig_2d = plt.figure(figsize=(8, 6))
             self.ax_2d = self._fig_2d.add_subplot(111)
         return self._fig_2d, self.ax_2d
 
-    def _ensure_3d_fig_exists(self):
+    def _ensure_3d_fig_exists(self) -> Tuple[plt.Figure, plt.Axes]:
         if self._fig_3d is None:
             self._fig_3d = plt.figure(figsize=(12, 8))
             self.ax_3d = self._fig_3d.add_axes([0, 0, 1, 1], projection="3d")
         return self._fig_3d, self.ax_3d
 
-    def _ensure_ani_fig_exists(self):
+    def _ensure_ani_fig_exists(self) -> Tuple[plt.Figure, plt.Axes]:
         if self._fig_ani is None:
             self._fig_ani = plt.figure(figsize=(12, 10))
             self.ani_ax = self._fig_ani.add_subplot(111, projection="3d")
         return self._fig_ani, self.ani_ax
 
-    def plot_show(self):
+    def plot_show(self) -> None:
         plt.show()
 
-    def plot(self):
+    def plot(self) -> None:
         """must be implemented in subclasses"""
         raise NotImplementedError("plot() must be implemented in subclasses")
 
-    def plot3d(self):
+    def plot3d(self) -> None:
         """must be implemented in subclasses"""
         raise NotImplementedError("plot3d() must be implemented in subclasses")
 
-    def create_animation(self):
+    def create_animation(self) -> None:
         """must be implemented in subclasses"""
         raise NotImplementedError("create_animation() must be implemented in subclasses")
 
-    def save_2d_fig(self, save_path: Union[os.PathLike, str], fig_name: str, dpi: int = 300):
+    def save_2d_fig(self, save_path: Union[os.PathLike, str], fig_name: str, dpi: int = 300) -> None:
         save_path = os.fspath(save_path)
         os.makedirs(save_path, exist_ok=True)
         if not fig_name.endswith(".png"):
@@ -124,7 +124,7 @@ class BasePlotter:
         dpi: int = 300,
         hide_background: bool = False,
         hide_ground: bool = False,
-    ):
+    ) -> None:
         save_path = os.fspath(save_path)
         os.makedirs(save_path, exist_ok=True)
         if not fig_name.endswith(".png"):
@@ -188,7 +188,7 @@ class BasePlotter:
 
         self.ax_3d.figure.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches="tight")
 
-    def set_nice_ticks(self, ax: matplotlib.axes.Axes, range_val: float, ticks_count: int, axis: str = "x"):
+    def set_nice_ticks(self, ax: matplotlib.axes.Axes, range_val: float, ticks_count: int, axis: str = "x") -> None:
         ticks_interval = range_val / (ticks_count - 1)
 
         # select base value for major ticks
@@ -256,7 +256,7 @@ class BasePlotterList:
             ani_list.append(ani)
         return ani_list
 
-    def plot_show(self):
+    def plot_show(self) -> None:
         plt.show()
 
 
