@@ -22,7 +22,7 @@ matplotlib.rcParams["pdf.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
 
 
-class RacePlotter:
+class BasePlotter:
     def __init__(
         self,
         traj_file: Union[os.PathLike, str, np.ndarray],
@@ -66,6 +66,151 @@ class RacePlotter:
         self.vs = vs
         self.vt = vt
 
+        # initialize the plot
+        self._fig_2d = plt.figure(figsize=(8, 6))
+        self.ax_2d = self._fig_2d.add_subplot(111)
+
+        self._fig_3d = plt.figure(figsize=(12, 8))
+        self.ax_3d = self._fig_3d.add_axes([0, 0, 1, 1], projection="3d")
+
+        self._fig_ani = plt.figure(figsize=(12, 10))
+        self.ani_ax = self._fig_ani.add_subplot(111, projection="3d")
+
+    def plot_show(self):
+        plt.show()
+
+    def plot(self):
+        """must be implemented in subclasses"""
+        raise NotImplementedError("plot() must be implemented in subclasses")
+
+    def plot3d(self):
+        """must be implemented in subclasses"""
+        raise NotImplementedError("plot3d() must be implemented in subclasses")
+
+    def create_animation(self):
+        """must be implemented in subclasses"""
+        raise NotImplementedError("create_animation() must be implemented in subclasses")
+
+    def save_2d_fig(self, save_path: Union[os.PathLike, str], fig_name: str, dpi: int = 300):
+        save_path = os.fspath(save_path)
+        os.makedirs(save_path, exist_ok=True)
+        if not fig_name.endswith(".png"):
+            fig_name = fig_name + ".png"
+        self.ax_2d.figure.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches="tight")
+
+    def save_3d_fig(
+        self,
+        save_path: Union[os.PathLike, str],
+        fig_name: str,
+        dpi: int = 300,
+        hide_background: bool = False,
+        hide_ground: bool = False,
+    ):
+        save_path = os.fspath(save_path)
+        os.makedirs(save_path, exist_ok=True)
+        if not fig_name.endswith(".png"):
+            fig_name = fig_name + ".png"
+
+        if hide_background:
+            fig = self.ax_3d.figure
+            for ax in fig.axes:
+                if hasattr(ax, "orientation") or ax != self.ax_3d:
+                    fig.delaxes(ax)
+            fig.set_size_inches(12, 8)
+
+            # hide all axis ticks
+            self.ax_3d.set_xticks([])
+            self.ax_3d.set_yticks([])
+            self.ax_3d.set_zticks([])
+            # hide all axis labels
+            self.ax_3d.set_xlabel("")
+            self.ax_3d.set_ylabel("")
+            self.ax_3d.set_zlabel("")
+
+            if not hide_ground:
+                # draw the ground
+                x_min, x_max = self.ax_3d.get_xlim()
+                y_min, y_max = self.ax_3d.get_ylim()
+                z_min, z_max = self.ax_3d.get_zlim()
+                x_center = (x_min + x_max) / 2
+                y_center = (y_min + y_max) / 2
+                x_range = x_max - x_min
+                y_range = y_max - y_min
+                z_range = z_max - z_min
+                # scale the ground
+                scale_factor = 1.5
+                x_min_ground = x_center - (x_range * scale_factor / 2)
+                x_max_ground = x_center + (x_range * scale_factor / 2)
+                y_min_ground = y_center - (y_range * scale_factor / 2)
+                y_max_ground = y_center + (y_range * scale_factor / 2)
+
+                xx, yy = np.meshgrid(
+                    np.linspace(x_min_ground, x_max_ground, 15), np.linspace(y_min_ground, y_max_ground, 15)
+                )
+                zz = np.ones_like(xx) * z_min
+                self.ax_3d.plot_wireframe(xx, yy, zz, color="gray", alpha=0.5, linewidth=1.0)
+
+                self.ax_3d.set_xlim(x_min_ground, x_max_ground)
+                self.ax_3d.set_ylim(y_min_ground, y_max_ground)
+                self.ax_3d.set_box_aspect([x_range * scale_factor, y_range * scale_factor, z_range])
+
+            # set background color to empty
+            self.ax_3d.xaxis.pane.fill = False
+            self.ax_3d.yaxis.pane.fill = False
+            self.ax_3d.zaxis.pane.fill = False
+            # hide pane lines
+            self.ax_3d.xaxis.pane.set_edgecolor("none")
+            self.ax_3d.yaxis.pane.set_edgecolor("none")
+            self.ax_3d.zaxis.pane.set_edgecolor("none")
+
+            self.ax_3d.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+            self.ax_3d.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+            self.ax_3d.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+
+            if hide_ground:
+                bbox = Bbox.from_bounds(1.15, 2.05, 7.5, 3.6)
+                # bbox = Bbox.from_bounds(2.2, 2.6, 6.0, 3.0)
+            else:
+                bbox = Bbox.from_bounds(1.05, 1.45, 8, 4)
+        else:
+            bbox = "tight"
+
+        self.ax_3d.figure.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches=bbox)
+
+    def set_nice_ticks(self, ax: matplotlib.axes.Axes, range_val: float, ticks_count: int, axis: str = "x"):
+        ticks_interval = range_val / (ticks_count - 1)
+
+        # select base value for major ticks
+        if range_val <= 1:
+            base = round(ticks_interval / 0.1) * 0.1
+        elif range_val <= 5:
+            base = round(ticks_interval / 0.5) * 0.5
+        elif range_val <= 10:
+            base = round(ticks_interval / 1.0) * 1.0
+        else:
+            base = int(max(1.0, round(range_val / 5)))
+
+        # set locator
+        locator = ticker.MultipleLocator(base)
+
+        # apply locator
+        if axis == "x":
+            ax.xaxis.set_major_locator(locator)
+        elif axis == "y":
+            ax.yaxis.set_major_locator(locator)
+        else:  # 'z'
+            ax.zaxis.set_major_locator(locator)
+
+
+class RacePlotter(BasePlotter):
+    def __init__(
+        self,
+        traj_file: Union[os.PathLike, str, np.ndarray],
+        track_file: Union[os.PathLike, str, RaceTrack],
+        wpt_path: Optional[Union[os.PathLike, str]] = None,
+    ):
+        super().__init__(traj_file=traj_file, track_file=track_file, wpt_path=wpt_path)
+
     def estimate_tangents(self, ps: np.ndarray) -> np.ndarray:
         # compute tangents
         dp_x = np.gradient(ps[:, 0])
@@ -78,9 +223,6 @@ class RacePlotter:
 
     def sigmoid(self, x: np.ndarray, bias: float, inner_radius: float, outer_radius: float, rate: float) -> np.ndarray:
         return inner_radius + outer_radius * (1 / (1 + np.exp(-rate * (x - bias))))
-
-    def plot_show(self):
-        plt.show()
 
     def get_line_tube(self, ps: np.ndarray, tube_radius: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         # create tube parameters
@@ -196,10 +338,8 @@ class RacePlotter:
         alpha: float = 0.01,
         tube_rate: float = 6,
     ):
-        fig = plt.figure(figsize=(8, 6))
-        ax = plt.gca()
-        self.ax_2d = ax
-
+        fig = self._fig_2d
+        ax = self.ax_2d
         ps = self.ps
         vt = self.vt
 
@@ -217,24 +357,24 @@ class RacePlotter:
                     rate=tube_rate,
                 )
 
-        plt.scatter(ps[:, 0], ps[:, 1], s=5, c=vt, cmap=cmap)
-        plt.colorbar(pad=0.01).ax.set_ylabel("Speed [m/s]")
+        sc = ax.scatter(ps[:, 0], ps[:, 1], s=5, c=vt, cmap=cmap)
+        fig.colorbar(sc, ax=ax, pad=0.01).ax.set_ylabel("Speed [m/s]")
 
-        plot_track(plt.gca(), self.track_file, set_radius=radius, set_width=width, set_height=height, set_margin=margin)
+        plot_track(ax, self.track_file, set_radius=radius, set_width=width, set_height=height, set_margin=margin)
 
         if fig_title is not None:
-            plt.title(fig_title, fontsize=26)
-        plt.xlabel("x [m]")
-        plt.ylabel("y [m]")
-        plt.axis("equal")
-        plt.grid()
+            ax.set_title(fig_title, fontsize=26)
+        ax.set_xlabel("x [m]")
+        ax.set_ylabel("y [m]")
+        ax.axis("equal")
+        ax.grid()
 
         if save_fig:
             if save_path is None:
                 raise ValueError("save_path is not provided.")
             os.makedirs(save_path, exist_ok=True)
             fig_name = (fig_name + ".png") if fig_name is not None else "togt_traj.png"
-            plt.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches="tight")
+            fig.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches="tight")
 
     def plot_tube(
         self,
@@ -305,8 +445,8 @@ class RacePlotter:
         tube_rate: float = 6,
         shade: bool = True,
     ):
-        fig = plt.figure(figsize=(12, 8))
-        ax = fig.add_axes([0, 0, 1, 1], projection="3d")
+        fig = self._fig_3d
+        ax = self.ax_3d
 
         # set aspect ratio
         x_range = self.ps[:, 0].max() - self.ps[:, 0].min()
@@ -328,8 +468,6 @@ class RacePlotter:
         self.set_nice_ticks(ax, x_range, x_ticks_count, "x")
         self.set_nice_ticks(ax, y_range, y_ticks_count, "y")
         self.set_nice_ticks(ax, z_range, z_ticks_count, "z")
-
-        self.ax_3d = ax
 
         ps = self.ps
         vt = self.vt
@@ -354,11 +492,10 @@ class RacePlotter:
         sc = ax.scatter(ps[:, 0], ps[:, 1], ps[:, 2], s=5, c=vt, cmap=cmap)
         shrink_factor = min(0.8, max(0.6, 0.6 * y_range / x_range))
         colorbar_aspect = 20 * shrink_factor
-        cbar = plt.colorbar(sc, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1)
-        cbar.ax.set_ylabel("Speed [m/s]")
+        fig.colorbar(sc, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1).ax.set_ylabel("Speed [m/s]")
 
         plot_track_3d(
-            plt.gca(),
+            ax,
             self.track_file,
             set_radius=radius,
             set_width=width,
@@ -369,19 +506,19 @@ class RacePlotter:
         )
 
         if fig_title is not None:
-            plt.gcf().text(0.5, 0.95, fig_title, fontsize=26, horizontalalignment="center", verticalalignment="top")
+            fig.text(0.5, 0.95, fig_title, fontsize=26, horizontalalignment="center", verticalalignment="top")
         ax.set_xlabel("x [m]", labelpad=30 * (x_range / max_range))
         ax.set_ylabel("y [m]", labelpad=30 * (y_range / max_range))
         ax.set_zlabel("z [m]", labelpad=30 * (z_range / max_range))
-        plt.axis("equal")
-        plt.grid()
+        ax.axis("equal")
+        ax.grid()
 
         if save_fig:
             if save_path is None:
                 raise ValueError("save_path is not provided.")
             os.makedirs(save_path, exist_ok=True)
             fig_name = (fig_name + ".png") if fig_name is not None else "togt_traj.png"
-            plt.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches="tight")
+            fig.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches="tight")
 
     def plot3d_tube(
         self,
@@ -428,116 +565,6 @@ class RacePlotter:
             antialiased=True,
         )
 
-    def set_nice_ticks(self, ax: matplotlib.axes.Axes, range_val: float, ticks_count: int, axis: str = "x"):
-        ticks_interval = range_val / (ticks_count - 1)
-
-        # select base value for major ticks
-        if range_val <= 1:
-            base = round(ticks_interval / 0.1) * 0.1
-        elif range_val <= 5:
-            base = round(ticks_interval / 0.5) * 0.5
-        elif range_val <= 10:
-            base = round(ticks_interval / 1.0) * 1.0
-        else:
-            base = int(max(1.0, round(range_val / 5)))
-
-        # set locator
-        locator = ticker.MultipleLocator(base)
-
-        # apply locator
-        if axis == "x":
-            ax.xaxis.set_major_locator(locator)
-        elif axis == "y":
-            ax.yaxis.set_major_locator(locator)
-        else:  # 'z'
-            ax.zaxis.set_major_locator(locator)
-
-    def save_2d_fig(self, save_path: Union[os.PathLike, str], fig_name: str, dpi: int = 300):
-        save_path = os.fspath(save_path)
-        os.makedirs(save_path, exist_ok=True)
-        if not fig_name.endswith(".png"):
-            fig_name = fig_name + ".png"
-        self.ax_2d.figure.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches="tight")
-
-    def save_3d_fig(
-        self,
-        save_path: Union[os.PathLike, str],
-        fig_name: str,
-        dpi: int = 300,
-        hide_background: bool = False,
-        hide_ground: bool = False,
-    ):
-        save_path = os.fspath(save_path)
-        os.makedirs(save_path, exist_ok=True)
-        if not fig_name.endswith(".png"):
-            fig_name = fig_name + ".png"
-
-        if hide_background:
-            fig = self.ax_3d.figure
-            for ax in fig.axes:
-                if hasattr(ax, "orientation") or ax != self.ax_3d:
-                    fig.delaxes(ax)
-            fig.set_size_inches(12, 8)
-
-            # hide all axis ticks
-            self.ax_3d.set_xticks([])
-            self.ax_3d.set_yticks([])
-            self.ax_3d.set_zticks([])
-            # hide all axis labels
-            self.ax_3d.set_xlabel("")
-            self.ax_3d.set_ylabel("")
-            self.ax_3d.set_zlabel("")
-
-            if not hide_ground:
-                # draw the ground
-                x_min, x_max = self.ax_3d.get_xlim()
-                y_min, y_max = self.ax_3d.get_ylim()
-                z_min, z_max = self.ax_3d.get_zlim()
-                x_center = (x_min + x_max) / 2
-                y_center = (y_min + y_max) / 2
-                x_range = x_max - x_min
-                y_range = y_max - y_min
-                z_range = z_max - z_min
-                # scale the ground
-                scale_factor = 1.5
-                x_min_ground = x_center - (x_range * scale_factor / 2)
-                x_max_ground = x_center + (x_range * scale_factor / 2)
-                y_min_ground = y_center - (y_range * scale_factor / 2)
-                y_max_ground = y_center + (y_range * scale_factor / 2)
-
-                xx, yy = np.meshgrid(
-                    np.linspace(x_min_ground, x_max_ground, 15), np.linspace(y_min_ground, y_max_ground, 15)
-                )
-                zz = np.ones_like(xx) * z_min
-                self.ax_3d.plot_wireframe(xx, yy, zz, color="gray", alpha=0.5, linewidth=1.0)
-
-                self.ax_3d.set_xlim(x_min_ground, x_max_ground)
-                self.ax_3d.set_ylim(y_min_ground, y_max_ground)
-                self.ax_3d.set_box_aspect([x_range * scale_factor, y_range * scale_factor, z_range])
-
-            # set background color to empty
-            self.ax_3d.xaxis.pane.fill = False
-            self.ax_3d.yaxis.pane.fill = False
-            self.ax_3d.zaxis.pane.fill = False
-            # hide pane lines
-            self.ax_3d.xaxis.pane.set_edgecolor("none")
-            self.ax_3d.yaxis.pane.set_edgecolor("none")
-            self.ax_3d.zaxis.pane.set_edgecolor("none")
-
-            self.ax_3d.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-            self.ax_3d.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-            self.ax_3d.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-
-            if hide_ground:
-                bbox = Bbox.from_bounds(1.15, 2.05, 7.5, 3.6)
-                # bbox = Bbox.from_bounds(2.2, 2.6, 6.0, 3.0)
-            else:
-                bbox = Bbox.from_bounds(1.05, 1.45, 8, 4)
-        else:
-            bbox = "tight"
-
-        self.ax_3d.figure.savefig(os.path.join(save_path, fig_name), dpi=dpi, bbox_inches=bbox)
-
     def create_animation(
         self,
         save_path: Union[os.PathLike, str] = None,
@@ -572,11 +599,8 @@ class RacePlotter:
         animation : matplotlib.animation.FuncAnimation
             The created animation object.
         """
-        # initialize the quadcopter drawer
-        fig = plt.figure(figsize=(12, 10))
-        ax = fig.add_subplot(111, projection="3d")
-        self.ani_ax = ax
-
+        fig = self._fig_ani
+        ax = self.ani_ax
         # compute the plot limits
         x_min, x_max = (
             np.min(self.ps[:, 0]),
@@ -631,7 +655,7 @@ class RacePlotter:
 
         # plot the track
         plot_track_3d(
-            plt.gca(),
+            ax,
             self.track_file,
             **track_kargs,
         )
@@ -658,8 +682,7 @@ class RacePlotter:
             sm.set_array([])
             shrink_factor = min(0.8, max(0.6, 0.6 * y_range / x_range))
             colorbar_aspect = 20 * shrink_factor
-            cbar = fig.colorbar(sm, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1)
-            cbar.ax.set_ylabel("Speed [m/s]")
+            fig.colorbar(sm, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1).ax.set_ylabel("Speed [m/s]")
         elif hide_background:
             # set background color to empty
             ax.xaxis.pane.fill = False
