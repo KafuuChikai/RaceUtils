@@ -251,7 +251,7 @@ def plot_track_3d(ax, track_file, radius=None, width=None, height=None, margin=0
             ]
             faces.extend(inner_sides)
 
-            poly = Poly3DCollection(faces, facecolors=gate_color, alpha=0.1, edgecolors="gray", linewidths=1.0)
+            poly = Poly3DCollection(faces, facecolors=gate_color, alpha=gate_alpha, edgecolors="gray", linewidths=1.0)
             ax.add_collection3d(poly)
 
         elif g["type"] == "PentagonPrisma":
