@@ -14,6 +14,7 @@ class QuadcopterDrawer(BaseDrawer):
     def __init__(
         self,
         ax: Axes3D,
+        draw_level: int = 1,
         show_body_axis: bool = False,
         arm_length: float = 0.2,
         arm_angle: float = np.pi * 65 / 180,
@@ -32,6 +33,8 @@ class QuadcopterDrawer(BaseDrawer):
         ---------
         ax: matplotlib 3D axis object
             The axis on which to draw the quadcopter
+        draw_level: int
+            The level of detail for drawing the quadcopter (default is 1)
         show_body_axis: bool
             Whether to show the body axis of the quadcopter (default is False)
         arm_length: float
@@ -57,6 +60,7 @@ class QuadcopterDrawer(BaseDrawer):
 
         """
         super().__init__(ax=ax, show_body_axis=show_body_axis)
+        self.draw_level = draw_level
         self.arm_length = arm_length
         self.arm_angle = arm_angle
         self.quad_type = quad_type
@@ -113,16 +117,18 @@ class QuadcopterDrawer(BaseDrawer):
         self._draw_propeller(position=position, rotation_matrix=R)
 
         # draw the body of the quadcopter
-        self._draw_body(
-            position=position,
-            rotation_matrix=R,
-        )
+        if self.draw_level >= 1:
+            self._draw_body(
+                position=position,
+                rotation_matrix=R,
+            )
 
         # draw the motion balls
-        self._draw_motion_balls(
-            position=position,
-            rotation_matrix=R,
-        )
+        if self.draw_level >= 2:
+            self._draw_motion_balls(
+                position=position,
+                rotation_matrix=R,
+            )
 
         # draw the body axis vector
         if self.show_body_axis:
@@ -195,35 +201,39 @@ class QuadcopterDrawer(BaseDrawer):
                 [x, end_point[0]], [y, end_point[1]], [z, end_point[2]], color=self.arm_color, linewidth=2
             )
             artists.append(line)
-            end_point_rotor = end_point + np.dot(rotation_matrix, np.array([0, 0, -0.06 * self.arm_length]))
             # draw the rotor
-            self._draw_cylinder(
-                center=end_point_rotor,
-                height=0.12 * self.arm_length,
-                radius=0.06 * self.arm_length,
-                rotation_matrix=rotation_matrix,
-                color=self.arm_color,
-                alpha=1.0,
-                closed=True,
-            )
+            if self.draw_level >= 1:
+                end_point_rotor = end_point + np.dot(rotation_matrix, np.array([0, 0, -0.06 * self.arm_length]))
+                self._draw_cylinder(
+                    center=end_point_rotor,
+                    height=0.12 * self.arm_length,
+                    radius=0.06 * self.arm_length,
+                    rotation_matrix=rotation_matrix,
+                    color=self.arm_color,
+                    alpha=1.0,
+                    closed=True,
+                )
 
             # draw the propeller
-            end_point_prop = end_point + np.dot(rotation_matrix, np.array([0, 0, -0.2 * self.arm_length]))
             if quad_type == "X":
                 prop_color = self.front_color if i < 2 else self.back_color  # alternate colors
             else:
                 prop_color = self.front_color
             circle_radius = 0.4 * self.arm_length
             circle_height = 0.1 * self.arm_length
-            self._draw_cylinder_ring(
-                center=end_point_prop,
-                height=circle_height,
-                outer_radius=1.0 * circle_radius,
-                inner_radius=0.8 * circle_radius,
-                rotation_matrix=rotation_matrix,
-                color=prop_color,
-                alpha=0.3,
-            )
+            if self.draw_level < 1:
+                end_point_prop = end_point
+            else:
+                end_point_prop = end_point + np.dot(rotation_matrix, np.array([0, 0, -0.2 * self.arm_length]))
+                self._draw_cylinder_ring(
+                    center=end_point_prop,
+                    height=circle_height,
+                    outer_radius=1.0 * circle_radius,
+                    inner_radius=0.8 * circle_radius,
+                    rotation_matrix=rotation_matrix,
+                    color=prop_color,
+                    alpha=0.3,
+                )
             self._draw_cylinder(
                 center=end_point_prop,
                 height=circle_height,
