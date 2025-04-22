@@ -420,7 +420,7 @@ class RacePlotter(BasePlotter):
         fig.colorbar(sc, ax=ax, pad=0.01).ax.set_ylabel("Speed [m/s]")
 
         if self.track_file is not None:
-            plot_track(ax, self.track_file, set_radius=radius, set_width=width, set_height=height, set_margin=margin)
+            plot_track(ax, self.track_file, radius=radius, width=width, height=height, margin=margin)
 
         if fig_title is not None:
             ax.set_title(fig_title, fontsize=26)
@@ -559,11 +559,11 @@ class RacePlotter(BasePlotter):
             plot_track_3d(
                 ax,
                 self.track_file,
-                set_radius=radius,
-                set_width=width,
-                set_height=height,
-                set_margin=margin,
-                color=gate_color,
+                radius=radius,
+                width=width,
+                height=height,
+                margin=margin,
+                gate_color=gate_color,
                 gate_alpha=gate_alpha,
             )
 

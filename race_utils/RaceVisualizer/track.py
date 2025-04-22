@@ -21,7 +21,7 @@ def rpy_to_rotation_matrix(rpy):
     return R
 
 
-def plot_track(ax, track_file, set_radius=None, set_width=None, set_height=None, set_margin=0):
+def plot_track(ax, track_file, radius=None, width=None, height=None, margin=0):
     track = track_file.to_dict() if isinstance(track_file, RaceTrack) else yaml.safe_load(open(track_file).read())
 
     for g in track["orders"]:
@@ -35,8 +35,8 @@ def plot_track(ax, track_file, set_radius=None, set_width=None, set_height=None,
         if g["type"] == "SingleBall":
             position = g["position"]
             r = g["radius"] - g["margin"]
-            if set_radius is not None:
-                r = set_radius - set_margin
+            if radius is not None:
+                r = radius - margin
             a = np.linspace(0, 2 * np.pi)
             ax.plot(position[0] + r * np.cos(a), position[1] + r * np.sin(a), "-", **args)
             # draw center
@@ -47,10 +47,10 @@ def plot_track(ax, track_file, set_radius=None, set_width=None, set_height=None,
             R = rpy_to_rotation_matrix(g["rpy"])
             hw = 0.5 * (g["width"] - g["margin"])
             hh = 0.5 * (g["height"] - g["margin"])
-            if set_width is not None:
-                hw = 0.5 * (set_width - set_margin)
-            if set_height is not None:
-                hh = 0.5 * (set_height - set_margin)
+            if width is not None:
+                hw = 0.5 * (width - margin)
+            if height is not None:
+                hh = 0.5 * (height - margin)
             drift = 0.0
             verts = [[-hh, hw, drift], [hh, 0.0, drift], [-hh, -hw, drift], [-hh, hw, drift]] @ R.T + np.array(
                 position
@@ -62,10 +62,10 @@ def plot_track(ax, track_file, set_radius=None, set_width=None, set_height=None,
             R = rpy_to_rotation_matrix(g["rpy"])
             hw = 0.5 * (g["width"] - g["marginW"])
             hh = 0.5 * (g["height"] - g["marginH"])
-            if set_width is not None:
-                hw = 0.5 * (set_width - set_margin)
-            if set_height is not None:
-                hh = 0.5 * (set_height - set_margin)
+            if width is not None:
+                hw = 0.5 * (width - margin)
+            if height is not None:
+                hh = 0.5 * (height - margin)
             drift = 0.0
             verts = [
                 [-hh, hw, drift],
@@ -80,8 +80,8 @@ def plot_track(ax, track_file, set_radius=None, set_width=None, set_height=None,
             position = g["position"]
             R = rpy_to_rotation_matrix(g["rpy"])
             ar = g["radius"] - g["margin"]
-            if set_radius is not None:
-                ar = set_radius - set_margin
+            if radius is not None:
+                ar = radius - margin
             cos54 = np.cos(0.3 * np.pi)
             sin54 = np.sin(0.3 * np.pi)
             nd, on = ar * cos54, ar * sin54
@@ -103,8 +103,8 @@ def plot_track(ax, track_file, set_radius=None, set_width=None, set_height=None,
             position = g["position"]
             R = rpy_to_rotation_matrix(g["rpy"])
             aside = g["side"] - g["margin"]
-            if set_radius is not None:
-                aside = set_radius - set_margin
+            if radius is not None:
+                aside = radius - margin
             hside = 0.5 * aside
             height = hside * np.tan(np.pi / 3.0)
             drift = 0.0
@@ -123,11 +123,9 @@ def plot_track(ax, track_file, set_radius=None, set_width=None, set_height=None,
             raise ValueError("Unrecognized gate: " + g["type"])
 
 
-def plot_track_3d(
-    ax, track_file, set_radius=None, set_width=None, set_height=None, set_margin=0, color=None, gate_alpha=0.1
-):
-    if color is None:
-        color = "r"
+def plot_track_3d(ax, track_file, radius=None, width=None, height=None, margin=0, gate_color=None, gate_alpha=0.1):
+    if gate_color is None:
+        gate_color = "r"
 
     track = track_file.to_dict() if isinstance(track_file, RaceTrack) else yaml.safe_load(open(track_file).read())
 
@@ -142,8 +140,8 @@ def plot_track_3d(
         if g["type"] == "SingleBall":
             position = g["position"]
             r = g["radius"] - g["margin"]
-            if set_radius is not None:
-                r = set_radius - set_margin
+            if radius is not None:
+                r = radius - margin
 
             # create sphere
             u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
@@ -151,7 +149,7 @@ def plot_track_3d(
             y = position[1] + r * np.sin(u) * np.sin(v)
             z = position[2] + r * np.cos(v)
             # draw sphere
-            ax.plot_surface(x, y, z, color=color, alpha=gate_alpha, edgecolor="none")
+            ax.plot_surface(x, y, z, color=gate_color, alpha=gate_alpha, edgecolor="none")
             # draw center
             ax.scatter(position[0], position[1], position[2], color="black", s=50)
 
@@ -160,10 +158,10 @@ def plot_track_3d(
             R = rpy_to_rotation_matrix(g["rpy"])
             hw = 0.5 * (g["width"] - g["margin"])
             hh = 0.5 * (g["height"] - g["margin"])
-            if set_width is not None:
-                hw = 0.5 * (set_width - set_margin)
-            if set_height is not None:
-                hh = 0.5 * (set_height - set_margin)
+            if width is not None:
+                hw = 0.5 * (width - margin)
+            if height is not None:
+                hh = 0.5 * (height - margin)
             drift = 0.0
             verts = [[-hh, hw, drift], [hh, 0.0, drift], [-hh, -hw, drift], [-hh, hw, drift]] @ R.T + np.array(
                 position
@@ -175,10 +173,10 @@ def plot_track_3d(
             R = rpy_to_rotation_matrix(g["rpy"])
             hw = 0.5 * (g["width"] - g["marginW"])
             hh = 0.5 * (g["height"] - g["marginH"])
-            if set_width is not None:
-                hw = 0.5 * (set_width - set_margin)
-            if set_height is not None:
-                hh = 0.5 * (set_height - set_margin)
+            if width is not None:
+                hw = 0.5 * (width - margin)
+            if height is not None:
+                hh = 0.5 * (height - margin)
             drift = 0.0
             thickness = 0.1 * min(hw, hh)
 
@@ -253,15 +251,15 @@ def plot_track_3d(
             ]
             faces.extend(inner_sides)
 
-            poly = Poly3DCollection(faces, facecolors="darkblue", alpha=0.1, edgecolors="gray", linewidths=1.0)
+            poly = Poly3DCollection(faces, facecolors=gate_color, alpha=0.1, edgecolors="gray", linewidths=1.0)
             ax.add_collection3d(poly)
 
         elif g["type"] == "PentagonPrisma":
             position = g["position"]
             R = rpy_to_rotation_matrix(g["rpy"])
             ar = g["radius"] - g["margin"]
-            if set_radius is not None:
-                ar = set_radius - set_margin
+            if radius is not None:
+                ar = radius - margin
             cos54 = np.cos(0.3 * np.pi)
             sin54 = np.sin(0.3 * np.pi)
             nd, on = ar * cos54, ar * sin54
@@ -283,8 +281,8 @@ def plot_track_3d(
             position = g["position"]
             R = rpy_to_rotation_matrix(g["rpy"])
             aside = g["side"] - g["margin"]
-            if set_radius is not None:
-                aside = set_radius - set_margin
+            if radius is not None:
+                aside = radius - margin
             hside = 0.5 * aside
             height = hside * np.tan(np.pi / 3.0)
             drift = 0.0
