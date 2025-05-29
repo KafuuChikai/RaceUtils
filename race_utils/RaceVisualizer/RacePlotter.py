@@ -5,6 +5,7 @@ from matplotlib.colors import Colormap, ListedColormap
 import matplotlib.ticker as ticker
 from matplotlib.transforms import Bbox
 import matplotlib.animation as animation
+from matplotlib.animation import FFMpegWriter
 from race_utils.RaceVisualizer.track import plot_track, plot_track_3d, plot_gate_3d
 from race_utils.RaceGenerator.RaceTrack import RaceTrack
 from race_utils.RaceVisualizer.Drawers.QuadcopterDrawer import QuadcopterDrawer
@@ -1013,7 +1014,30 @@ class RacePlotter(BasePlotter):
             all_artists.extend(artists)
             return all_artists
 
-        # create the animation
+        # save the animation if a path is provided
+        if save_path is not None:
+            writer = FFMpegWriter(fps=fps)
+            os.makedirs(save_path, exist_ok=True)
+            file_path = os.path.join(save_path, video_name)
+
+            # print the file path
+            print(f"Saving animation to {file_path}...")
+
+            # start the animation writer
+            with writer.saving(fig, file_path, dpi=dpi):
+                for i in range(time_steps):
+                    update(i)  # update the frame
+                    writer.grab_frame()
+
+                    # show progress every 10% of the total time steps
+                    if (i + 1) % max(1, time_steps // 10) == 0:
+                        print(f"Progress: {(i+1)/time_steps*100:.1f}% ({i+1}/{time_steps})")
+
+                    plt.pause(0.001)
+
+            print(f"Animation saved to {file_path}")
+
+        # return the animation object
         ani = animation.FuncAnimation(
             fig,
             update,
@@ -1022,10 +1046,5 @@ class RacePlotter(BasePlotter):
             blit=False,
             interval=1000 / fps,
         )
-
-        # save the animation if a path is provided
-        if save_path is not None:
-            ani.save(os.path.join(save_path, video_name), writer="ffmpeg", fps=fps, dpi=dpi)
-            print(f"The animation is saved at {save_path}")
 
         return ani
