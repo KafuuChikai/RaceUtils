@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "race-utils"
-version = "1.0.3"
+version = "1.0.4"
 description = "This Python package provides utilities for generating and visualizing race tracks."
 authors = ["Xian Wang <xianwang@zju.edu.cn>"]
 license = "MIT"
