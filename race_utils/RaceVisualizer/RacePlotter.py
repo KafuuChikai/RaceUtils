@@ -5,7 +5,7 @@ from matplotlib.colors import Colormap, ListedColormap
 import matplotlib.ticker as ticker
 from matplotlib.transforms import Bbox
 import matplotlib.animation as animation
-from race_utils.RaceVisualizer.track import plot_track, plot_track_3d
+from race_utils.RaceVisualizer.track import plot_track, plot_track_3d, plot_gate_3d
 from race_utils.RaceGenerator.RaceTrack import RaceTrack
 from race_utils.RaceVisualizer.Drawers.QuadcopterDrawer import QuadcopterDrawer
 from typing import Union, Optional, Tuple, List
@@ -651,6 +651,7 @@ class RacePlotter(BasePlotter):
         follow_drone: bool = False,
         hide_background: bool = False,
         hide_ground: bool = False,
+        flash_gate: bool = False,
     ) -> animation.FuncAnimation:
         """Create a 3D animation of the drone trajectory.
 
@@ -727,14 +728,22 @@ class RacePlotter(BasePlotter):
         # create lines for the drone
         quad_artists = []
         lines = []
+        gate_artists = []
 
         # plot the track
         if self.track_file is not None:
-            plot_track_3d(
-                ax,
-                self.track_file,
-                **track_kargs,
-            )
+            if not flash_gate:
+                plot_track_3d(
+                    ax,
+                    self.track_file,
+                    **track_kargs,
+                )
+            else:
+                track = self.track_file.to_dict()
+                gates = []
+                for gate_id in track["orders"]:
+                    gates.append(track[gate_id])
+                track_len = len(gates)
 
         # set the figure plots
         # set the limits
@@ -814,6 +823,22 @@ class RacePlotter(BasePlotter):
                     except:
                         pass
             quad_artists.clear()
+
+            # clear previous gate artists
+            for artist in gate_artists:
+                if isinstance(artist, list):
+                    for a in artist:
+                        try:
+                            a.remove()
+                        except:
+                            pass
+                else:
+                    try:
+                        artist.remove()
+                    except:
+                        pass
+            gate_artists.clear()
+
             return []
 
         # the update function for each frame
@@ -874,6 +899,8 @@ class RacePlotter(BasePlotter):
 
                     # update the last frame
                     update.last_frame = frame
+            else:
+                update.next_id = 0
 
             # clear previous quadcopter artists
             for artist in quad_artists:
@@ -890,6 +917,30 @@ class RacePlotter(BasePlotter):
             # draw the quadcopter
             artists = self.quadcopter_drawer.draw(position=position, attitude=attitude)
             quad_artists.extend(artists)
+
+            # draw the gate
+            if flash_gate:
+                if update.next_id < track_len:
+                    # clear previous gate artists
+                    for artist in gate_artists:
+                        try:
+                            artist.remove()
+                        except:
+                            pass
+                    gate_artists.clear()
+
+                    # draw the next gate
+                    artists = plot_gate_3d(
+                        ax,
+                        gates[update.next_id],
+                        **track_kargs,
+                    )
+                    gate_artists.extend(artists)
+                    if (
+                        np.linalg.norm(gates[update.next_id]["position"] - positions[frame])
+                        < gates[update.next_id]["radius"]
+                    ):
+                        update.next_id += 1
 
             # support follow camera
             if follow_drone:
