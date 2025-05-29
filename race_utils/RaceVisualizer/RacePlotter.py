@@ -205,6 +205,7 @@ class BasePlotter:
             base = int(max(1.0, round(range_val / 5)))
 
         # set locator
+        base = max(0.1, base)  # ensure base is not zero
         locator = ticker.MultipleLocator(base)
 
         # apply locator
