@@ -903,7 +903,7 @@ class RacePlotter(BasePlotter):
                 z_view_range = arm_length * 12
 
                 # compute the target azimuth and elevation angles
-                target_azim = (-np.degrees(np.arctan2(forward_vector[1], forward_vector[0])) + 90) % 360
+                target_azim = (-np.degrees(np.arctan2(forward_vector[1], forward_vector[0])) + 180) % 360
                 horizontal_distance = np.sqrt(forward_vector[0] ** 2 + forward_vector[1] ** 2)
                 target_elev = -np.degrees(np.arctan2(forward_vector[2], horizontal_distance)) / 3 + 30
 
