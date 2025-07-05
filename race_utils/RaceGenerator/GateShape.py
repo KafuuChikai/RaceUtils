@@ -15,7 +15,13 @@ class BaseShape:
 
 
 class BasePrisma(BaseShape):
-    def __init__(self, gate_type: str, rpy: Union[List[float], np.ndarray], length: float, midpoints: int):
+    def __init__(
+        self,
+        gate_type: str,
+        rpy: Union[List[float], np.ndarray],
+        length: float,
+        midpoints: int,
+    ):
         super().__init__(gate_type)
         self.rpy = rpy if isinstance(rpy, list) else rpy.tolist()
         self.length = length
@@ -70,7 +76,12 @@ class RectanglePrisma(BasePrisma):
 
 class PentagonPrisma(BasePrisma):
     def __init__(
-        self, rpy: Union[List[float], np.ndarray], length: float, midpoints: int, radius: float, margin: float
+        self,
+        rpy: Union[List[float], np.ndarray],
+        length: float,
+        midpoints: int,
+        radius: float,
+        margin: float,
     ):
         super().__init__("PentagonPrisma", rpy, length, midpoints)
         self.radius = radius
@@ -78,7 +89,14 @@ class PentagonPrisma(BasePrisma):
 
 
 class HexagonPrisma(BasePrisma):
-    def __init__(self, rpy: Union[List[float], np.ndarray], length: float, midpoints: int, side: float, margin: float):
+    def __init__(
+        self,
+        rpy: Union[List[float], np.ndarray],
+        length: float,
+        midpoints: int,
+        side: float,
+        margin: float,
+    ):
         super().__init__("HexagonPrisma", rpy, length, midpoints)
         self.side = side
         self.margin = margin

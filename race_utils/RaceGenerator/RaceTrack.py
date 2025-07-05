@@ -1,6 +1,10 @@
 from typing import List, Optional, Union
 from race_utils.RaceGenerator.BaseRaceClass import BaseRaceClass, State, Gate
-from race_utils.RaceGenerator.GenerationTools import create_state, create_gate, quote_specific_keys
+from race_utils.RaceGenerator.GenerationTools import (
+    create_state,
+    create_gate,
+    quote_specific_keys,
+)
 import os
 
 from ruamel.yaml import YAML
@@ -13,7 +17,9 @@ yaml.default_flow_style = False
 
 
 class RaceTrack(BaseRaceClass):
-    def __init__(self, init_state: State, end_state: State, race_name: Optional[str] = None):
+    def __init__(
+        self, init_state: State, end_state: State, race_name: Optional[str] = None
+    ):
         self.initState = init_state
         self.endState = end_state
         self.race_name = race_name
@@ -135,7 +141,9 @@ class RaceTrack(BaseRaceClass):
         self.clear_gates()
         for gate_name in data["orders"]:
             gate_params = data[gate_name]
-            shape_kwarg = {k: v for k, v in gate_params.items() if k not in gate_param_list}
+            shape_kwarg = {
+                k: v for k, v in gate_params.items() if k not in gate_param_list
+            }
             gate_kwarg = {
                 "gate_type": gate_params["type"],
                 "position": gate_params["position"],

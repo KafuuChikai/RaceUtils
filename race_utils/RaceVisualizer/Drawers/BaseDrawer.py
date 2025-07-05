@@ -119,19 +119,29 @@ class BaseDrawer:
 
                 # create the Poly3DCollection
                 circle_color = to_rgba(color, alpha)
-                circle_poly = Poly3DCollection(verts, facecolors=circle_color, edgecolors=circle_color)
+                circle_poly = Poly3DCollection(
+                    verts, facecolors=circle_color, edgecolors=circle_color
+                )
 
                 # add the circle to the plot
                 self.ax.add_collection3d(circle_poly)
                 artists.append(circle_poly)
 
                 # draw the edge of the circle
-                circ = self.ax.plot(circle_x_rot, circle_y_rot, circle_z_rot, color=color)
+                circ = self.ax.plot(
+                    circle_x_rot, circle_y_rot, circle_z_rot, color=color
+                )
                 artists.append(circ[0])
 
         self.total_artists.extend(artists)
 
-    def _draw_sphere(self, center: np.ndarray, radius: float, color: str = "white", alpha: float = 1.0) -> None:
+    def _draw_sphere(
+        self,
+        center: np.ndarray,
+        radius: float,
+        color: str = "white",
+        alpha: float = 1.0,
+    ) -> None:
         """Draw a sphere in 3D space.
 
         Parameters
@@ -243,7 +253,9 @@ class BaseDrawer:
 
             # create the Poly3DCollection
             ring_color = to_rgba(color, alpha)
-            ring_poly = Poly3DCollection(verts, facecolors=ring_color, edgecolors=ring_color)
+            ring_poly = Poly3DCollection(
+                verts, facecolors=ring_color, edgecolors=ring_color
+            )
 
             # add the ring to the plot
             self.ax.add_collection3d(ring_poly)
@@ -251,7 +263,9 @@ class BaseDrawer:
 
         self.total_artists.extend(artists)
 
-    def _draw_body_axis(self, position: np.ndarray, rotation_matrix: np.ndarray) -> None:
+    def _draw_body_axis(
+        self, position: np.ndarray, rotation_matrix: np.ndarray
+    ) -> None:
         """Draw an arrow in 3D space.
 
         Parameters

@@ -111,7 +111,9 @@ class QuadcopterDrawer(BaseDrawer):
         elif len(attitude) == 4:  # use [qx, qy, qz, qw] for quaternion
             R = Rotation.from_quat(attitude).as_matrix()
         else:
-            raise ValueError("Attitude must be either Euler angles [roll, pitch, yaw] or quaternion [qx, qy, qz, qw]")
+            raise ValueError(
+                "Attitude must be either Euler angles [roll, pitch, yaw] or quaternion [qx, qy, qz, qw]"
+            )
 
         # draw the quadcopter arms and propellers
         self._draw_propeller(position=position, rotation_matrix=R)
@@ -136,7 +138,9 @@ class QuadcopterDrawer(BaseDrawer):
 
         return self.total_artists
 
-    def _draw_propeller(self, position: np.ndarray, rotation_matrix: np.ndarray) -> None:
+    def _draw_propeller(
+        self, position: np.ndarray, rotation_matrix: np.ndarray
+    ) -> None:
         """Draw the propellers of the quadcopter
 
         Parameters
@@ -198,12 +202,18 @@ class QuadcopterDrawer(BaseDrawer):
 
             # draw the arm
             (line,) = ax.plot(
-                [x, end_point[0]], [y, end_point[1]], [z, end_point[2]], color=self.arm_color, linewidth=2
+                [x, end_point[0]],
+                [y, end_point[1]],
+                [z, end_point[2]],
+                color=self.arm_color,
+                linewidth=2,
             )
             artists.append(line)
             # draw the rotor
             if self.draw_level >= 1:
-                end_point_rotor = end_point + np.dot(rotation_matrix, np.array([0, 0, -0.06 * self.arm_length]))
+                end_point_rotor = end_point + np.dot(
+                    rotation_matrix, np.array([0, 0, -0.06 * self.arm_length])
+                )
                 self._draw_cylinder(
                     center=end_point_rotor,
                     height=0.12 * self.arm_length,
@@ -216,7 +226,9 @@ class QuadcopterDrawer(BaseDrawer):
 
             # draw the propeller
             if quad_type == "X":
-                prop_color = self.front_color if i < 2 else self.back_color  # alternate colors
+                prop_color = (
+                    self.front_color if i < 2 else self.back_color
+                )  # alternate colors
             else:
                 prop_color = self.front_color
             circle_radius = 0.4 * self.arm_length
@@ -224,7 +236,9 @@ class QuadcopterDrawer(BaseDrawer):
             if self.draw_level < 1:
                 end_point_prop = end_point
             else:
-                end_point_prop = end_point + np.dot(rotation_matrix, np.array([0, 0, -0.2 * self.arm_length]))
+                end_point_prop = end_point + np.dot(
+                    rotation_matrix, np.array([0, 0, -0.2 * self.arm_length])
+                )
                 self._draw_cylinder_ring(
                     center=end_point_prop,
                     height=circle_height,
@@ -274,15 +288,33 @@ class QuadcopterDrawer(BaseDrawer):
                 [half_size_w, -half_size_l, base_height],  # 1: right bottom back
                 [half_size_w, half_size_l, base_height],  # 2: right bottom front
                 [-half_size_w, half_size_l, base_height],  # 3: left bottom front
-                [-half_size_w, -half_size_l, base_height + body_height],  # 4: left top back
-                [half_size_w, -half_size_l, base_height + body_height],  # 5: right top back
-                [half_size_w, half_size_l, base_height + body_height],  # 6: right top front
-                [-half_size_w, half_size_l, base_height + body_height],  # 7: left top front
+                [
+                    -half_size_w,
+                    -half_size_l,
+                    base_height + body_height,
+                ],  # 4: left top back
+                [
+                    half_size_w,
+                    -half_size_l,
+                    base_height + body_height,
+                ],  # 5: right top back
+                [
+                    half_size_w,
+                    half_size_l,
+                    base_height + body_height,
+                ],  # 6: right top front
+                [
+                    -half_size_w,
+                    half_size_l,
+                    base_height + body_height,
+                ],  # 7: left top front
             ]
         )
 
         # Convert cube vertices to world coordinates
-        cube_vertices_world = np.array([np.dot(rotation_matrix, vertex) + position for vertex in cube_vertices])
+        cube_vertices_world = np.array(
+            [np.dot(rotation_matrix, vertex) + position for vertex in cube_vertices]
+        )
 
         # define the faces of the cube
         faces = [
@@ -339,26 +371,54 @@ class QuadcopterDrawer(BaseDrawer):
         cylinder_height_h = 0.25 * self.arm_length
         cylinder_height_l = 0.1 * self.arm_length
         cylinder_h_center = position + np.dot(
-            rotation_matrix, np.array([0, 0, base_height + body_height + cylinder_height_h / 2])
+            rotation_matrix,
+            np.array([0, 0, base_height + body_height + cylinder_height_h / 2]),
         )
         cylinder_l_centers_1 = position + np.dot(
-            rotation_matrix, np.array([0.8 * half_size_w, 0, base_height + body_height + cylinder_height_l / 2])
+            rotation_matrix,
+            np.array(
+                [
+                    0.8 * half_size_w,
+                    0,
+                    base_height + body_height + cylinder_height_l / 2,
+                ]
+            ),
         )
         cylinder_l_centers_2 = position + np.dot(
             rotation_matrix,
-            np.array([-0.5 * half_size_w, 0.8 * half_size_l, base_height + body_height + cylinder_height_l / 2]),
+            np.array(
+                [
+                    -0.5 * half_size_w,
+                    0.8 * half_size_l,
+                    base_height + body_height + cylinder_height_l / 2,
+                ]
+            ),
         )
         cylinder_l_centers_3 = position + np.dot(
             rotation_matrix,
-            np.array([-0.5 * half_size_w, -0.8 * half_size_l, base_height + body_height + cylinder_height_l / 2]),
+            np.array(
+                [
+                    -0.5 * half_size_w,
+                    -0.8 * half_size_l,
+                    base_height + body_height + cylinder_height_l / 2,
+                ]
+            ),
         )
 
         # compute the size and position of the motion balls
         ball_radius = 0.05 * self.arm_length
-        ball_h_center = cylinder_h_center + np.dot(rotation_matrix, np.array([0, 0, cylinder_height_h / 2]))
-        ball_l_centers_1 = cylinder_l_centers_1 + np.dot(rotation_matrix, np.array([0, 0, cylinder_height_l / 2]))
-        ball_l_centers_2 = cylinder_l_centers_2 + np.dot(rotation_matrix, np.array([0, 0, cylinder_height_l / 2]))
-        ball_l_centers_3 = cylinder_l_centers_3 + np.dot(rotation_matrix, np.array([0, 0, cylinder_height_l / 2]))
+        ball_h_center = cylinder_h_center + np.dot(
+            rotation_matrix, np.array([0, 0, cylinder_height_h / 2])
+        )
+        ball_l_centers_1 = cylinder_l_centers_1 + np.dot(
+            rotation_matrix, np.array([0, 0, cylinder_height_l / 2])
+        )
+        ball_l_centers_2 = cylinder_l_centers_2 + np.dot(
+            rotation_matrix, np.array([0, 0, cylinder_height_l / 2])
+        )
+        ball_l_centers_3 = cylinder_l_centers_3 + np.dot(
+            rotation_matrix, np.array([0, 0, cylinder_height_l / 2])
+        )
 
         # draw the motion cylinders high
         self._draw_cylinder(
@@ -405,7 +465,15 @@ class QuadcopterDrawer(BaseDrawer):
         )
 
         # draw the motion balls
-        self._draw_sphere(center=ball_h_center, radius=ball_radius, color="gray", alpha=1)
-        self._draw_sphere(center=ball_l_centers_1, radius=ball_radius, color="gray", alpha=1)
-        self._draw_sphere(center=ball_l_centers_2, radius=ball_radius, color="gray", alpha=1)
-        self._draw_sphere(center=ball_l_centers_3, radius=ball_radius, color="gray", alpha=1)
+        self._draw_sphere(
+            center=ball_h_center, radius=ball_radius, color="gray", alpha=1
+        )
+        self._draw_sphere(
+            center=ball_l_centers_1, radius=ball_radius, color="gray", alpha=1
+        )
+        self._draw_sphere(
+            center=ball_l_centers_2, radius=ball_radius, color="gray", alpha=1
+        )
+        self._draw_sphere(
+            center=ball_l_centers_3, radius=ball_radius, color="gray", alpha=1
+        )

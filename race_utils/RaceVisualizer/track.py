@@ -22,7 +22,11 @@ def rpy_to_rotation_matrix(rpy):
 
 
 def plot_track(ax, track_file, radius=None, width=None, height=None, margin=0):
-    track = track_file.to_dict() if isinstance(track_file, RaceTrack) else yaml.safe_load(open(track_file).read())
+    track = (
+        track_file.to_dict()
+        if isinstance(track_file, RaceTrack)
+        else yaml.safe_load(open(track_file).read())
+    )
 
     for g in track["orders"]:
         g = track[g]
@@ -38,7 +42,9 @@ def plot_track(ax, track_file, radius=None, width=None, height=None, margin=0):
             if radius is not None:
                 r = radius - margin
             a = np.linspace(0, 2 * np.pi)
-            ax.plot(position[0] + r * np.cos(a), position[1] + r * np.sin(a), "-", **args)
+            ax.plot(
+                position[0] + r * np.cos(a), position[1] + r * np.sin(a), "-", **args
+            )
             # draw center
             ax.scatter(position[0], position[1], color="black", s=50)
 
@@ -52,9 +58,12 @@ def plot_track(ax, track_file, radius=None, width=None, height=None, margin=0):
             if height is not None:
                 hh = 0.5 * (height - margin)
             drift = 0.0
-            verts = [[-hh, hw, drift], [hh, 0.0, drift], [-hh, -hw, drift], [-hh, hw, drift]] @ R.T + np.array(
-                position
-            ).reshape((1, 3))
+            verts = [
+                [-hh, hw, drift],
+                [hh, 0.0, drift],
+                [-hh, -hw, drift],
+                [-hh, hw, drift],
+            ] @ R.T + np.array(position).reshape((1, 3))
             ax.plot(verts[:, 0], verts[:, 1], "o-", **args)
 
         elif g["type"] == "RectanglePrisma":
@@ -123,11 +132,24 @@ def plot_track(ax, track_file, radius=None, width=None, height=None, margin=0):
             raise ValueError("Unrecognized gate: " + g["type"])
 
 
-def plot_track_3d(ax, track_file, radius=None, width=None, height=None, margin=0, gate_color=None, gate_alpha=0.1):
+def plot_track_3d(
+    ax,
+    track_file,
+    radius=None,
+    width=None,
+    height=None,
+    margin=0,
+    gate_color=None,
+    gate_alpha=0.1,
+):
     if gate_color is None:
         gate_color = "r"
 
-    track = track_file.to_dict() if isinstance(track_file, RaceTrack) else yaml.safe_load(open(track_file).read())
+    track = (
+        track_file.to_dict()
+        if isinstance(track_file, RaceTrack)
+        else yaml.safe_load(open(track_file).read())
+    )
 
     for g in track["orders"]:
         g = track[g]
@@ -143,7 +165,16 @@ def plot_track_3d(ax, track_file, radius=None, width=None, height=None, margin=0
         )
 
 
-def plot_gate_3d(ax, g, radius=None, width=None, height=None, margin=0, gate_color=None, gate_alpha=0.1):
+def plot_gate_3d(
+    ax,
+    g,
+    radius=None,
+    width=None,
+    height=None,
+    margin=0,
+    gate_color=None,
+    gate_alpha=0.1,
+):
     """Plot a single gate in 3D.
 
     Parameters
@@ -193,7 +224,9 @@ def plot_gate_3d(ax, g, radius=None, width=None, height=None, margin=0, gate_col
         y = position[1] + r * np.sin(u) * np.sin(v)
         z = position[2] + r * np.cos(v)
         # draw sphere
-        surface = ax.plot_surface(x, y, z, color=gate_color, alpha=gate_alpha, edgecolor="none")
+        surface = ax.plot_surface(
+            x, y, z, color=gate_color, alpha=gate_alpha, edgecolor="none"
+        )
         artists.append(surface)
         # draw center
         scatter = ax.scatter(position[0], position[1], position[2], color="black", s=50)
@@ -209,9 +242,12 @@ def plot_gate_3d(ax, g, radius=None, width=None, height=None, margin=0, gate_col
         if height is not None:
             hh = 0.5 * (height - margin)
         drift = 0.0
-        verts = [[-hh, hw, drift], [hh, 0.0, drift], [-hh, -hw, drift], [-hh, hw, drift]] @ R.T + np.array(
-            position
-        ).reshape((1, 3))
+        verts = [
+            [-hh, hw, drift],
+            [hh, 0.0, drift],
+            [-hh, -hw, drift],
+            [-hh, hw, drift],
+        ] @ R.T + np.array(position).reshape((1, 3))
         line = ax.plot(verts[:, 0], verts[:, 1], verts[:, 2], "o-", **args)
         artists.append(line)
 
@@ -267,38 +303,124 @@ def plot_gate_3d(ax, g, radius=None, width=None, height=None, margin=0, gate_col
         faces = []
 
         front_ring = [
-            [front_outer_verts[0], front_outer_verts[1], front_inner_verts[1], front_inner_verts[0]],  # 左侧
-            [front_outer_verts[1], front_outer_verts[2], front_inner_verts[2], front_inner_verts[1]],  # 底部
-            [front_outer_verts[2], front_outer_verts[3], front_inner_verts[3], front_inner_verts[2]],  # 右侧
-            [front_outer_verts[3], front_outer_verts[0], front_inner_verts[0], front_inner_verts[3]],  # 顶部
+            [
+                front_outer_verts[0],
+                front_outer_verts[1],
+                front_inner_verts[1],
+                front_inner_verts[0],
+            ],  # 左侧
+            [
+                front_outer_verts[1],
+                front_outer_verts[2],
+                front_inner_verts[2],
+                front_inner_verts[1],
+            ],  # 底部
+            [
+                front_outer_verts[2],
+                front_outer_verts[3],
+                front_inner_verts[3],
+                front_inner_verts[2],
+            ],  # 右侧
+            [
+                front_outer_verts[3],
+                front_outer_verts[0],
+                front_inner_verts[0],
+                front_inner_verts[3],
+            ],  # 顶部
         ]
         faces.extend(front_ring)
 
         back_ring = [
-            [back_outer_verts[0], back_outer_verts[1], back_inner_verts[1], back_inner_verts[0]],  # 左侧
-            [back_outer_verts[1], back_outer_verts[2], back_inner_verts[2], back_inner_verts[1]],  # 底部
-            [back_outer_verts[2], back_outer_verts[3], back_inner_verts[3], back_inner_verts[2]],  # 右侧
-            [back_outer_verts[3], back_outer_verts[0], back_inner_verts[0], back_inner_verts[3]],  # 顶部
+            [
+                back_outer_verts[0],
+                back_outer_verts[1],
+                back_inner_verts[1],
+                back_inner_verts[0],
+            ],  # 左侧
+            [
+                back_outer_verts[1],
+                back_outer_verts[2],
+                back_inner_verts[2],
+                back_inner_verts[1],
+            ],  # 底部
+            [
+                back_outer_verts[2],
+                back_outer_verts[3],
+                back_inner_verts[3],
+                back_inner_verts[2],
+            ],  # 右侧
+            [
+                back_outer_verts[3],
+                back_outer_verts[0],
+                back_inner_verts[0],
+                back_inner_verts[3],
+            ],  # 顶部
         ]
         faces.extend(back_ring)
 
         outer_sides = [
-            [front_outer_verts[0], front_outer_verts[1], back_outer_verts[1], back_outer_verts[0]],  # 左外侧
-            [front_outer_verts[1], front_outer_verts[2], back_outer_verts[2], back_outer_verts[1]],  # 底外侧
-            [front_outer_verts[2], front_outer_verts[3], back_outer_verts[3], back_outer_verts[2]],  # 右外侧
-            [front_outer_verts[3], front_outer_verts[0], back_outer_verts[0], back_outer_verts[3]],  # 顶外侧
+            [
+                front_outer_verts[0],
+                front_outer_verts[1],
+                back_outer_verts[1],
+                back_outer_verts[0],
+            ],  # 左外侧
+            [
+                front_outer_verts[1],
+                front_outer_verts[2],
+                back_outer_verts[2],
+                back_outer_verts[1],
+            ],  # 底外侧
+            [
+                front_outer_verts[2],
+                front_outer_verts[3],
+                back_outer_verts[3],
+                back_outer_verts[2],
+            ],  # 右外侧
+            [
+                front_outer_verts[3],
+                front_outer_verts[0],
+                back_outer_verts[0],
+                back_outer_verts[3],
+            ],  # 顶外侧
         ]
         faces.extend(outer_sides)
 
         inner_sides = [
-            [front_inner_verts[0], front_inner_verts[1], back_inner_verts[1], back_inner_verts[0]],  # 左内侧
-            [front_inner_verts[1], front_inner_verts[2], back_inner_verts[2], back_inner_verts[1]],  # 底内侧
-            [front_inner_verts[2], front_inner_verts[3], back_inner_verts[3], back_inner_verts[2]],  # 右内侧
-            [front_inner_verts[3], front_inner_verts[0], back_inner_verts[0], back_inner_verts[3]],  # 顶内侧
+            [
+                front_inner_verts[0],
+                front_inner_verts[1],
+                back_inner_verts[1],
+                back_inner_verts[0],
+            ],  # 左内侧
+            [
+                front_inner_verts[1],
+                front_inner_verts[2],
+                back_inner_verts[2],
+                back_inner_verts[1],
+            ],  # 底内侧
+            [
+                front_inner_verts[2],
+                front_inner_verts[3],
+                back_inner_verts[3],
+                back_inner_verts[2],
+            ],  # 右内侧
+            [
+                front_inner_verts[3],
+                front_inner_verts[0],
+                back_inner_verts[0],
+                back_inner_verts[3],
+            ],  # 顶内侧
         ]
         faces.extend(inner_sides)
 
-        poly = Poly3DCollection(faces, facecolors=gate_color, alpha=gate_alpha, edgecolors="gray", linewidths=1.0)
+        poly = Poly3DCollection(
+            faces,
+            facecolors=gate_color,
+            alpha=gate_alpha,
+            edgecolors="gray",
+            linewidths=1.0,
+        )
         ax.add_collection3d(poly)
         artists.append(poly)
 
