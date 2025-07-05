@@ -233,6 +233,14 @@ class BasePlotterList:
         assert isinstance(plotters, list)
         self.plotters = plotters
         self.num_plotters = len(plotters)
+        self._fig_ani = None
+        self.ani_ax = None
+
+    def _ensure_ani_fig_exists(self) -> Tuple[plt.Figure, plt.Axes]:
+        if self._fig_ani is None:
+            self._fig_ani = plt.figure(figsize=(12, 10))
+            self.ani_ax = self._fig_ani.add_subplot(111, projection="3d")
+        return self._fig_ani, self.ani_ax
 
     def load_track(self, track_file: Union[os.PathLike, str, RaceTrack], index: Optional[list] = None) -> None:
         if index is None:
@@ -241,29 +249,36 @@ class BasePlotterList:
             self.plotters[i].load_track(track_file)
 
     def plot(self, **kwargs) -> None:
+        kwargs["fig_name"] = kwargs.get("fig_name", "racetrack")
+        kwargs["fig_title"] = kwargs.get("fig_title", "racetrack")
+        fig_name = kwargs["fig_name"]
+        fig_title = kwargs["fig_title"]
         for i, plotter in enumerate(self.plotters):
-            kwargs["fig_name"] = kwargs.get("fig_name", "racetrack")
-            kwargs["fig_name"] += f"_drone{i + 1}_2d"
-            kwargs["fig_title"] = kwargs.get("fig_title", "racetrack")
-            kwargs["fig_title"] += f" (drone {i + 1})"
+            kwargs["fig_name"] = f"{fig_name}_drone{i + 1}_2d"
+            kwargs["fig_title"] = f"{fig_title} (drone {i + 1})"
             plotter.plot(**kwargs)
 
     def plot3d(self, **kwargs) -> None:
+        kwargs["fig_name"] = kwargs.get("fig_name", "racetrack")
+        kwargs["fig_title"] = kwargs.get("fig_title", "racetrack")
+        fig_name = kwargs["fig_name"]
+        fig_title = kwargs["fig_title"]
         for i, plotter in enumerate(self.plotters):
-            kwargs["fig_name"] = kwargs.get("fig_name", "racetrack")
-            kwargs["fig_name"] += f"_drone{i + 1}_3d"
-            kwargs["fig_title"] = kwargs.get("fig_title", "racetrack")
-            kwargs["fig_title"] += f" (drone {i + 1})"
+            kwargs["fig_name"] = f"{fig_name}_drone{i + 1}_3d"
+            kwargs["fig_title"] = f"{fig_title} (drone {i + 1})"
             plotter.plot3d(**kwargs)
 
     def create_animation(self, **kwargs) -> List[animation.FuncAnimation]:
         ani_list = []
+        self._ensure_ani_fig_exists()
         for i, plotter in enumerate(self.plotters):
             video_full_name = kwargs.get("video_name", "racetrack")
             video_name, ext = os.path.splitext(video_full_name)
             if not ext:
                 ext = ".mp4"
             kwargs["video_name"] = f"{video_name}_drone{i + 1}{ext}"
+            plotter._fig_ani = self._fig_ani
+            plotter.ani_ax = self.ani_ax
             ani = plotter.create_animation(**kwargs)
             ani_list.append(ani)
         return ani_list
@@ -702,9 +717,11 @@ class RacePlotter(BasePlotter):
 
         # create the quadcopter drawer
         arm_length = drone_kwargs.get("arm_length", 0.2)
-        if not follow_drone:
+        if not follow_drone and "arm_length" not in drone_kwargs:
             arm_length = max(max_range / 30, 0.2)  # automatically set arm length
-        self.quadcopter_drawer = QuadcopterDrawer(ax=ax, arm_length=arm_length, **drone_kwargs)
+        drawer_kwargs = drone_kwargs.copy()
+        drawer_kwargs.pop("arm_length", None)
+        self.quadcopter_drawer = QuadcopterDrawer(ax=ax, arm_length=arm_length, **drawer_kwargs)
 
         # ensure positions in a right shape
         total_frames = int((self.t[-1] - self.t[0]) * fps)
