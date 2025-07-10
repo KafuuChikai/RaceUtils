@@ -314,6 +314,8 @@ class BasePlotterList:
             if not ext:
                 ext = ".mp4"
             kwargs["video_name"] = f"{video_name}_drone{i + 1}{ext}"
+            if i > 0:
+                kwargs["plot_colorbar"] = False
             plotter._fig_ani = self._fig_ani
             plotter.ani_ax = self.ani_ax
             ani = plotter.create_animation(**kwargs)
@@ -763,6 +765,7 @@ class RacePlotter(BasePlotter):
         hide_background: bool = False,
         hide_ground: bool = False,
         flash_gate: bool = False,
+        plot_colorbar: bool = True,
     ) -> animation.FuncAnimation:
         """Create a 3D animation of the drone trajectory.
 
@@ -892,9 +895,10 @@ class RacePlotter(BasePlotter):
             sm.set_array([])
             shrink_factor = min(0.8, max(0.6, 0.6 * y_range / x_range))
             colorbar_aspect = 20 * shrink_factor
-            fig.colorbar(
-                sm, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1
-            ).ax.set_ylabel("Speed [m/s]")
+            if plot_colorbar:
+                fig.colorbar(
+                    sm, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1
+                ).ax.set_ylabel("Speed [m/s]")
         elif hide_background:
             # set background color to empty
             ax.xaxis.pane.fill = False
