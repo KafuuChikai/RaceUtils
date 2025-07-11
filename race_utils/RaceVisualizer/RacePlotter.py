@@ -285,37 +285,49 @@ class BasePlotterList:
         for i in index:
             self.plotters[i].load_track(track_file)
 
-    def plot(self, **kwargs) -> None:
-        kwargs["fig_name"] = kwargs.get("fig_name", "racetrack")
-        kwargs["fig_title"] = kwargs.get("fig_title", "racetrack")
-        fig_name = kwargs["fig_name"]
-        fig_title = kwargs["fig_title"]
+    def plot(self, **input_kwargs) -> None:
+        input_kwargs["fig_name"] = input_kwargs.get("fig_name", "racetrack")
+        input_kwargs["fig_title"] = input_kwargs.get("fig_title", "racetrack")
+        fig_name = input_kwargs["fig_name"]
+        fig_title = input_kwargs["fig_title"]
         for i, plotter in enumerate(self.plotters):
+            kwargs = input_kwargs.copy()
+            if isinstance(kwargs.get("cmap", None), list):
+                kwargs["cmap"] = kwargs["cmap"][i % len(kwargs["cmap"])]
             kwargs["fig_name"] = f"{fig_name}_drone{i + 1}_2d"
             kwargs["fig_title"] = f"{fig_title} (drone {i + 1})"
             plotter.plot(**kwargs)
 
-    def plot3d(self, **kwargs) -> None:
-        kwargs["fig_name"] = kwargs.get("fig_name", "racetrack")
-        kwargs["fig_title"] = kwargs.get("fig_title", "racetrack")
-        fig_name = kwargs["fig_name"]
-        fig_title = kwargs["fig_title"]
+    def plot3d(self, **input_kwargs) -> None:
+        input_kwargs["fig_name"] = input_kwargs.get("fig_name", "racetrack")
+        input_kwargs["fig_title"] = input_kwargs.get("fig_title", "racetrack")
+        fig_name = input_kwargs["fig_name"]
+        fig_title = input_kwargs["fig_title"]
         for i, plotter in enumerate(self.plotters):
+            kwargs = input_kwargs.copy()
+            if isinstance(kwargs.get("cmap", None), list):
+                kwargs["cmap"] = kwargs["cmap"][i % len(kwargs["cmap"])]
             kwargs["fig_name"] = f"{fig_name}_drone{i + 1}_3d"
             kwargs["fig_title"] = f"{fig_title} (drone {i + 1})"
             plotter.plot3d(**kwargs)
 
-    def create_animation(self, **kwargs) -> List[animation.FuncAnimation]:
+    def create_animation(self, **input_kwargs) -> List[animation.FuncAnimation]:
         ani_list = []
         self._ensure_ani_fig_exists()
+        input_kwargs["plot_colorbar"] = input_kwargs.get("plot_colorbar", True)
+        if self.num_plotters > 1:
+            input_kwargs["adjest_colorbar"] = False
         for i, plotter in enumerate(self.plotters):
+            kwargs = input_kwargs.copy()
+            if isinstance(kwargs.get("cmap", None), list):
+                kwargs["cmap"] = kwargs["cmap"][i % len(kwargs["cmap"])]
             video_full_name = kwargs.get("video_name", "racetrack")
             video_name, ext = os.path.splitext(video_full_name)
             if not ext:
                 ext = ".mp4"
             kwargs["video_name"] = f"{video_name}_drone{i + 1}{ext}"
             if i > 0:
-                kwargs["plot_colorbar"] = False
+                kwargs["show_bar_info"] = False
             plotter._fig_ani = self._fig_ani
             plotter.ani_ax = self.ani_ax
             ani = plotter.create_animation(**kwargs)
@@ -766,6 +778,8 @@ class RacePlotter(BasePlotter):
         hide_ground: bool = False,
         flash_gate: bool = False,
         plot_colorbar: bool = True,
+        adjest_colorbar: bool = True,
+        show_bar_info: bool = True,
     ) -> animation.FuncAnimation:
         """Create a 3D animation of the drone trajectory.
 
@@ -896,9 +910,17 @@ class RacePlotter(BasePlotter):
             shrink_factor = min(0.8, max(0.6, 0.6 * y_range / x_range))
             colorbar_aspect = 20 * shrink_factor
             if plot_colorbar:
-                fig.colorbar(
-                    sm, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1
-                ).ax.set_ylabel("Speed [m/s]")
+                if adjest_colorbar:
+                    cbar = fig.colorbar(
+                        sm, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1
+                    )
+                else:
+                    cbar = fig.colorbar(sm, ax=ax)
+
+                if show_bar_info:
+                    cbar.set_label("Velocity [m/s]")
+                else:
+                    cbar.ax.set_yticks([])
         elif hide_background:
             # set background color to empty
             ax.xaxis.pane.fill = False
