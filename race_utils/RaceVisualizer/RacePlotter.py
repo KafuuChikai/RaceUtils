@@ -984,26 +984,26 @@ class RacePlotter(BasePlotter):
             # draw the trajectory
             if frame > 0:
                 if frame_history > 0:
-                    # clear previous lines
-                    for line in lines:
-                        line.remove() if line in ax.lines else None
-                    lines.clear()
+                    # 1. Add the newest trajectory segment
+                    new_segment_color = cmap(vt_norm[frame])
+                    (new_segment,) = ax.plot(
+                        positions[frame - 1 : frame + 1, 0],
+                        positions[frame - 1 : frame + 1, 1],
+                        positions[frame - 1 : frame + 1, 2],
+                        color=new_segment_color,
+                        linewidth=2,
+                    )
+                    lines.append(new_segment)
 
-                    # compute the start and end index for the trajectory
-                    start_idx = max(0, frame - frame_history)
-                    end_idx = frame
-
-                    # draw the trajectory
-                    for i in range(start_idx, end_idx):
-                        color = cmap(vt_norm[i])
-                        (segment,) = ax.plot(
-                            positions[i : i + 2, 0],
-                            positions[i : i + 2, 1],
-                            positions[i : i + 2, 2],
-                            color=color,
-                            linewidth=2,
-                        )
-                        lines.append(segment)
+                    # 2. If the history buffer is full, remove the oldest segment
+                    if len(lines) > frame_history:
+                        oldest_segment = lines.pop(
+                            0
+                        )  # Get the oldest line from the list
+                        try:
+                            oldest_segment.remove()  # Remove it from the plot
+                        except ValueError:
+                            pass  # Already removed
                 else:
                     # only update the last segment
                     if frame > 1 and hasattr(update, "last_frame"):
