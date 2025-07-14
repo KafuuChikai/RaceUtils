@@ -110,10 +110,14 @@ class BasePlotter:
             self.ax_3d = self._fig_3d.add_axes([0, 0, 1, 1], projection="3d")
         return self._fig_3d, self.ax_3d
 
-    def _ensure_ani_fig_exists(self) -> Tuple[plt.Figure, plt.Axes]:
+    def _ensure_ani_fig_exists(self) -> Tuple[plt.Figure, plt.Axes, plt.Axes]:
         if self._fig_ani is None:
-            self._fig_ani = plt.figure(figsize=(12, 10))
-            self.ani_ax = self._fig_ani.add_subplot(111, projection="3d")
+            # Use a wider figure to comfortably fit the colorbar
+            self._fig_ani = plt.figure(figsize=(14, 10))
+            # Main 3D plot axes, leaving space on the right for the colorbar
+            self.ani_ax = self._fig_ani.add_axes([0.05, 0.05, 0.8, 0.9], projection="3d")
+            # Dedicated axes for the colorbar
+            self.ani_cax = self._fig_ani.add_axes([0.88, 0.15, 0.03, 0.7])
         return self._fig_ani, self.ani_ax
 
     def plot_show(self) -> None:
@@ -271,12 +275,17 @@ class BasePlotterList:
         self.num_plotters = len(plotters)
         self._fig_ani = None
         self.ani_ax = None
+        self.ani_cax = None
 
-    def _ensure_ani_fig_exists(self) -> Tuple[plt.Figure, plt.Axes]:
+    def _ensure_ani_fig_exists(self) -> Tuple[plt.Figure, plt.Axes, plt.Axes]:
         if self._fig_ani is None:
-            self._fig_ani = plt.figure(figsize=(12, 10))
-            self.ani_ax = self._fig_ani.add_subplot(111, projection="3d")
-        return self._fig_ani, self.ani_ax
+            # Use a wider figure to comfortably fit the colorbar
+            self._fig_ani = plt.figure(figsize=(14, 10))
+            # Main 3D plot axes, leaving space on the right for the colorbar
+            self.ani_ax = self._fig_ani.add_axes([0.05, 0.05, 0.8, 0.9], projection="3d")
+            # Dedicated axes for the colorbar
+            self.ani_cax = self._fig_ani.add_axes([0.88, 0.15, 0.03, 0.7])
+        return self._fig_ani, self.ani_ax, self.ani_cax
 
     def load_track(
         self,
@@ -316,25 +325,61 @@ class BasePlotterList:
 
     def create_animation(self, **input_kwargs) -> List[animation.FuncAnimation]:
         ani_list = []
-        self._ensure_ani_fig_exists()
+        fig, ax, cax_container = self._ensure_ani_fig_exists()
+
+        # --- Create dedicated sub-axes for each colorbar within the container ---
+        if self.num_plotters > 0 and input_kwargs.get("plot_colorbar", True):
+            # Get the position of the container axes [left, bottom, width, height]
+            bbox = cax_container.get_position()
+            cax_container.set_visible(False)  # Hide the container itself
+
+            # Define horizontal spacing between colorbars
+            padding = 0.1  # 10% of the container width as padding
+            total_width = bbox.width
+            sub_cax_width = (total_width * (1 - padding * (self.num_plotters - 1))) / self.num_plotters
+            
+            sub_caxes = []
+            for i in range(self.num_plotters):
+                # Calculate left position for each sub-cax, arranging from left to right
+                left = bbox.x0 + i * (sub_cax_width + total_width * padding)
+                bottom = bbox.y0
+                width = sub_cax_width
+                height = bbox.height
+                
+                sub_cax = fig.add_axes([left, bottom, width, height])
+                sub_caxes.append(sub_cax)
+        else:
+            cax_container.set_visible(False)
+            sub_caxes = [None] * self.num_plotters
+        
+        # --- Loop through plotters and create animations ---
         input_kwargs["plot_colorbar"] = input_kwargs.get("plot_colorbar", True)
         if self.num_plotters > 1:
             input_kwargs["adjest_colorbar"] = False
+
         for i, plotter in enumerate(self.plotters):
             kwargs = input_kwargs.copy()
             if isinstance(kwargs.get("cmap", None), list):
                 kwargs["cmap"] = kwargs["cmap"][i % len(kwargs["cmap"])]
+
             video_full_name = kwargs.get("video_name", "racetrack")
             video_name, ext = os.path.splitext(video_full_name)
             if not ext:
                 ext = ".mp4"
             kwargs["video_name"] = f"{video_name}_drone{i + 1}{ext}"
-            if i > 0:
+            if i < self.num_plotters - 1:
                 kwargs["show_bar_info"] = False
-            plotter._fig_ani = self._fig_ani
-            plotter.ani_ax = self.ani_ax
+
+            # Pass the dedicated colorbar axes to the individual plotter
+            plotter.ani_cax = sub_caxes[i]
+
+            # Ensure the plotter uses the shared figure and main axes
+            plotter._fig_ani = fig
+            plotter.ani_ax = ax
+
             ani = plotter.create_animation(**kwargs)
             ani_list.append(ani)
+
         return ani_list
 
     def plot_show(self) -> None:
@@ -818,6 +863,8 @@ class RacePlotter(BasePlotter):
         self._ensure_ani_fig_exists()
         fig = self._fig_ani
         ax = self.ani_ax
+        cax = self.ani_cax
+
 
         # --- Crash Effect Parameters ---
         crash_n_debris = self.crash_kwargs.get("n_debris", 60)
@@ -938,10 +985,10 @@ class RacePlotter(BasePlotter):
             if plot_colorbar:
                 if adjest_colorbar:
                     cbar = fig.colorbar(
-                        sm, ax=ax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1
+                        sm, cax=cax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1
                     )
                 else:
-                    cbar = fig.colorbar(sm, ax=ax)
+                    cbar = fig.colorbar(sm, cax=cax)
 
                 if show_bar_info:
                     cbar.set_label("Velocity [m/s]")
