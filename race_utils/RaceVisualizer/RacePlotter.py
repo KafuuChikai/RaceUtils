@@ -115,7 +115,9 @@ class BasePlotter:
             # Use a wider figure to comfortably fit the colorbar
             self._fig_ani = plt.figure(figsize=(14, 10))
             # Main 3D plot axes, leaving space on the right for the colorbar
-            self.ani_ax = self._fig_ani.add_axes([0.05, 0.05, 0.8, 0.9], projection="3d")
+            self.ani_ax = self._fig_ani.add_axes(
+                [0.05, 0.05, 0.8, 0.9], projection="3d"
+            )
             # Dedicated axes for the colorbar
             self.ani_cax = self._fig_ani.add_axes([0.88, 0.15, 0.03, 0.7])
         return self._fig_ani, self.ani_ax
@@ -282,7 +284,9 @@ class BasePlotterList:
             # Use a wider figure to comfortably fit the colorbar
             self._fig_ani = plt.figure(figsize=(14, 10))
             # Main 3D plot axes, leaving space on the right for the colorbar
-            self.ani_ax = self._fig_ani.add_axes([0.05, 0.05, 0.8, 0.9], projection="3d")
+            self.ani_ax = self._fig_ani.add_axes(
+                [0.05, 0.05, 0.8, 0.9], projection="3d"
+            )
             # Dedicated axes for the colorbar
             self.ani_cax = self._fig_ani.add_axes([0.88, 0.15, 0.03, 0.7])
         return self._fig_ani, self.ani_ax, self.ani_cax
@@ -336,8 +340,10 @@ class BasePlotterList:
             # Define horizontal spacing between colorbars
             padding = 0.1  # 10% of the container width as padding
             total_width = bbox.width
-            sub_cax_width = (total_width * (1 - padding * (self.num_plotters - 1))) / self.num_plotters
-            
+            sub_cax_width = (
+                total_width * (1 - padding * (self.num_plotters - 1))
+            ) / self.num_plotters
+
             sub_caxes = []
             for i in range(self.num_plotters):
                 # Calculate left position for each sub-cax, arranging from left to right
@@ -345,13 +351,13 @@ class BasePlotterList:
                 bottom = bbox.y0
                 width = sub_cax_width
                 height = bbox.height
-                
+
                 sub_cax = fig.add_axes([left, bottom, width, height])
                 sub_caxes.append(sub_cax)
         else:
             cax_container.set_visible(False)
             sub_caxes = [None] * self.num_plotters
-        
+
         # --- Loop through plotters and create animations ---
         input_kwargs["plot_colorbar"] = input_kwargs.get("plot_colorbar", True)
         if self.num_plotters > 1:
@@ -985,7 +991,11 @@ class RacePlotter(BasePlotter):
             if plot_colorbar:
                 if adjest_colorbar:
                     cbar = fig.colorbar(
-                        sm, cax=cax, shrink=shrink_factor, aspect=colorbar_aspect, pad=0.1
+                        sm,
+                        cax=cax,
+                        shrink=shrink_factor,
+                        aspect=colorbar_aspect,
+                        pad=0.1,
                     )
                 else:
                     cbar = fig.colorbar(sm, cax=cax)
