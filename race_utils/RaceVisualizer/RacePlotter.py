@@ -349,6 +349,7 @@ class RacePlotter(BasePlotter):
         wpt_path: Optional[Union[os.PathLike, str]] = None,
         end_time: Optional[int] = None,
         crash_effect: Optional[bool] = False,
+        crash_kwargs: dict = {},
     ):
         super().__init__(
             traj_file=traj_file,
@@ -357,6 +358,7 @@ class RacePlotter(BasePlotter):
             end_time=end_time,
         )
         self.crash_effect = crash_effect
+        self.crash_kwargs = crash_kwargs
 
     def estimate_tangents(self, ps: np.ndarray) -> np.ndarray:
         # compute tangents
@@ -791,7 +793,6 @@ class RacePlotter(BasePlotter):
         plot_colorbar: bool = True,
         adjest_colorbar: bool = True,
         show_bar_info: bool = True,
-        crash_kwargs: dict = {},
     ) -> animation.FuncAnimation:
         """Create a 3D animation of the drone trajectory.
 
@@ -819,9 +820,9 @@ class RacePlotter(BasePlotter):
         ax = self.ani_ax
 
         # --- Crash Effect Parameters ---
-        crash_n_debris = crash_kwargs.get("n_debris", 60)
-        crash_duration = crash_kwargs.get("duration", 1.2)
-        crash_color = crash_kwargs.get("color", "orange")
+        crash_n_debris = self.crash_kwargs.get("n_debris", 60)
+        crash_duration = self.crash_kwargs.get("duration", 1.2)
+        crash_color = self.crash_kwargs.get("color", "orange")
 
         # compute the plot limits
         x_min, x_max = (
