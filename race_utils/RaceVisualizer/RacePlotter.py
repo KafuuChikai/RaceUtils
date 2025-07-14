@@ -29,6 +29,7 @@ class BasePlotter:
         traj_file: Union[os.PathLike, str, np.ndarray],
         track_file: Union[os.PathLike, str, RaceTrack] = None,
         wpt_path: Optional[Union[os.PathLike, str]] = None,
+        end_time: Optional[int] = None,
     ):
         if isinstance(traj_file, np.ndarray):
             data_ocp = traj_file
@@ -45,6 +46,8 @@ class BasePlotter:
             self.track_file = None
         if wpt_path is not None:
             self.wpt_path = os.fspath(wpt_path)
+
+        self.end_time = end_time
 
         self.t = data_ocp["t"]
         self.p_x = data_ocp["p_x"]
@@ -344,8 +347,16 @@ class RacePlotter(BasePlotter):
         traj_file: Union[os.PathLike, str, np.ndarray],
         track_file: Union[os.PathLike, str, RaceTrack] = None,
         wpt_path: Optional[Union[os.PathLike, str]] = None,
+        end_time: Optional[int] = None,
+        crash_effect: Optional[bool] = False,
     ):
-        super().__init__(traj_file=traj_file, track_file=track_file, wpt_path=wpt_path)
+        super().__init__(
+            traj_file=traj_file,
+            track_file=track_file,
+            wpt_path=wpt_path,
+            end_time=end_time,
+        )
+        self.crash_effect = crash_effect
 
     def estimate_tangents(self, ps: np.ndarray) -> np.ndarray:
         # compute tangents
@@ -780,6 +791,7 @@ class RacePlotter(BasePlotter):
         plot_colorbar: bool = True,
         adjest_colorbar: bool = True,
         show_bar_info: bool = True,
+        crash_kwargs: dict = {},
     ) -> animation.FuncAnimation:
         """Create a 3D animation of the drone trajectory.
 
@@ -805,6 +817,12 @@ class RacePlotter(BasePlotter):
         self._ensure_ani_fig_exists()
         fig = self._fig_ani
         ax = self.ani_ax
+
+        # --- Crash Effect Parameters ---
+        crash_n_debris = crash_kwargs.get("n_debris", 60)
+        crash_duration = crash_kwargs.get("duration", 1.2)
+        crash_color = crash_kwargs.get("color", "orange")
+
         # compute the plot limits
         x_min, x_max = (
             np.min(self.ps[:, 0]),
@@ -844,6 +862,10 @@ class RacePlotter(BasePlotter):
         )
 
         # ensure positions in a right shape
+        if self.end_time is not None:
+            max_frame = int(self.end_time * fps)
+        else:
+            max_frame = 0
         total_frames = int((self.t[-1] - self.t[0]) * fps)
         frame_history = int(fps * traj_history)
         times = np.linspace(self.t[0], self.t[-1], total_frames)
@@ -865,12 +887,15 @@ class RacePlotter(BasePlotter):
         vt = np.interp(times, self.ts, self.vt)
         vt_min, vt_max = self.vt.min(), self.vt.max()
         vt_norm = (vt - vt_min) / (vt_max - vt_min) if vt_max > vt_min else 0.5
-        time_steps = positions.shape[0]
+        time_steps = (
+            positions.shape[0] if max_frame <= 0 else max(max_frame, positions.shape[0])
+        )
 
         # create lines for the drone
         quad_artists = []
         lines = []
         gate_artists = []
+        crash_artists = []  # Artists for the crash effect
 
         # plot the track
         if self.track_file is not None:
@@ -999,19 +1024,97 @@ class RacePlotter(BasePlotter):
                         pass
             gate_artists.clear()
 
+            # clear previous crash artists
+            for artist in crash_artists:
+                artist.remove()
+            crash_artists.clear()
+
             return []
 
         # the update function for each frame
         def update(frame):
+            # --- Crash / End of Data Logic ---
+            if self.crash_effect and frame >= len(positions):
+                # If this is the first frame after data runs out, create the crash effect.
+                if not hasattr(update, "crashed") or not update.crashed:
+                    update.crashed = True
+                    update.crash_frame = frame
+                    last_position = positions[-1]
+                    last_velocity = np.linalg.norm(vt[-1])
+
+                    # 1. Clear the drone model
+                    for artist in quad_artists:
+                        artist.remove()
+                    quad_artists.clear()
+
+                    # 2. Create the scatter plot object for debris, initially at the crash point
+                    debris_radius = arm_length * 2.0
+                    debris_positions = (
+                        last_position
+                        + (np.random.rand(crash_n_debris, 3) - 0.5) * debris_radius
+                    )
+                    debris = ax.scatter(
+                        debris_positions[:, 0],
+                        debris_positions[:, 1],
+                        debris_positions[:, 2],
+                        color=crash_color,
+                        marker=".",
+                        s=20,
+                        alpha=0.7,
+                    )
+                    crash_artists.append(debris)
+                    update.debris_artist = debris
+
+                    # 3. Initialize debris velocities (random directions, varied speeds)
+                    velocities = debris_positions - last_position
+                    velocities /= np.linalg.norm(velocities, axis=1)[:, np.newaxis]
+                    velocities *= (
+                        last_velocity
+                        * (0.5 + 0.5 * np.random.rand(crash_n_debris, 1))
+                        / 10
+                    )
+                    update.debris_positions = debris_positions
+                    update.debris_velocities = velocities
+
+                elif update.crashed:
+                    # If already crashed, just update the crash artists
+                    # --- Update the diffusion animation on subsequent frames ---
+                    time_since_crash = (frame - update.crash_frame) / fps
+                    if time_since_crash < crash_duration:
+                        # Calculate new positions
+                        new_positions = (
+                            update.debris_positions
+                            + update.debris_velocities * time_since_crash
+                        )
+                        update.debris_artist._offsets3d = (
+                            new_positions[:, 0],
+                            new_positions[:, 1],
+                            new_positions[:, 2],
+                        )
+
+                        # Calculate fade-out alpha
+                        new_alpha = max(0, 1 - (time_since_crash / crash_duration))
+                        update.debris_artist.set_alpha(new_alpha)
+                    else:
+                        # Hide debris after duration
+                        update.debris_artist.set_alpha(0)
+
+                # Return only the persistent crash artists
+                return crash_artists
+
+            # If not crashed, reset the flag
+            update.crashed = False
+            display_frame = frame
+
             # draw the trajectory
-            if frame > 0:
+            if display_frame > 0:
                 if frame_history > 0:
                     # 1. Add the newest trajectory segment
-                    new_segment_color = cmap(vt_norm[frame])
+                    new_segment_color = cmap(vt_norm[display_frame])
                     (new_segment,) = ax.plot(
-                        positions[frame - 1 : frame + 1, 0],
-                        positions[frame - 1 : frame + 1, 1],
-                        positions[frame - 1 : frame + 1, 2],
+                        positions[display_frame - 1 : display_frame + 1, 0],
+                        positions[display_frame - 1 : display_frame + 1, 1],
+                        positions[display_frame - 1 : display_frame + 1, 2],
                         color=new_segment_color,
                         linewidth=2,
                     )
@@ -1028,9 +1131,9 @@ class RacePlotter(BasePlotter):
                             pass  # Already removed
                 else:
                     # only update the last segment
-                    if frame > 1 and hasattr(update, "last_frame"):
+                    if display_frame > 1 and hasattr(update, "last_frame"):
                         start_idx = update.last_frame
-                        end_idx = frame
+                        end_idx = display_frame
 
                         # compute the average velocity for the segment
                         avg_velocity = np.mean(vt_norm[start_idx : end_idx + 1])
@@ -1049,16 +1152,16 @@ class RacePlotter(BasePlotter):
                         # draw the first segment
                         color = cmap(vt_norm[0])
                         (segment,) = ax.plot(
-                            positions[0 : frame + 1, 0],
-                            positions[0 : frame + 1, 1],
-                            positions[0 : frame + 1, 2],
+                            positions[0 : display_frame + 1, 0],
+                            positions[0 : display_frame + 1, 1],
+                            positions[0 : display_frame + 1, 2],
                             color=color,
                             linewidth=2,
                         )
                         lines.append(segment)
 
                     # update the last frame
-                    update.last_frame = frame
+                    update.last_frame = display_frame
             else:
                 update.next_id = 0
 
@@ -1071,8 +1174,8 @@ class RacePlotter(BasePlotter):
             quad_artists.clear()
 
             # draw the quadcopter
-            position = positions[frame]
-            attitude = attitudes[frame]
+            position = positions[display_frame]
+            attitude = attitudes[display_frame]
 
             # draw the quadcopter
             artists = self.quadcopter_drawer.draw(position=position, attitude=attitude)
@@ -1098,7 +1201,7 @@ class RacePlotter(BasePlotter):
                     gate_artists.extend(artists)
                     if (
                         np.linalg.norm(
-                            gates[update.next_id]["position"] - positions[frame]
+                            gates[update.next_id]["position"] - positions[display_frame]
                         )
                         < gates[update.next_id]["radius"]
                     ):
@@ -1190,6 +1293,9 @@ class RacePlotter(BasePlotter):
             # collect all artists
             all_artists = lines.copy()
             all_artists.extend(artists)
+            all_artists.extend(quad_artists)
+            all_artists.extend(gate_artists)
+            all_artists.extend(crash_artists)
             return all_artists
 
         # save the animation if a path is provided
