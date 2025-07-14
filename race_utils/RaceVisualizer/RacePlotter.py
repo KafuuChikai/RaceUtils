@@ -375,6 +375,8 @@ class BasePlotterList:
             kwargs["video_name"] = f"{video_name}_drone{i + 1}{ext}"
             if i < self.num_plotters - 1:
                 kwargs["show_bar_info"] = False
+                kwargs["show_title"] = False
+                kwargs["show_time"] = False
 
             # Pass the dedicated colorbar axes to the individual plotter
             plotter.ani_cax = sub_caxes[i]
@@ -844,6 +846,8 @@ class RacePlotter(BasePlotter):
         plot_colorbar: bool = True,
         adjest_colorbar: bool = True,
         show_bar_info: bool = True,
+        show_title: bool = True,
+        show_time: bool = True,
     ) -> animation.FuncAnimation:
         """Create a 3D animation of the drone trajectory.
 
@@ -871,6 +875,23 @@ class RacePlotter(BasePlotter):
         ax = self.ani_ax
         cax = self.ani_cax
 
+        # Add the main title to the figure if provided
+        if show_title:
+            fig_title, ext = os.path.splitext(video_name)
+            fig.suptitle(fig_title, fontsize=20)
+
+        # Initialize the dynamic time text object in the top-left corner
+        if show_time:
+            time_text = fig.text(
+                0.92,  # x-position: 95% from the left
+                0.08,  # y-position: 5% from the bottom
+                "",  # Initial text is empty
+                fontsize=20,
+                transform=fig.transFigure,
+                ha="right",  # Horizontal alignment: right
+                va="bottom",  # Vertical alignment: bottom
+                bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.7),
+            )
 
         # --- Crash Effect Parameters ---
         crash_n_debris = self.crash_kwargs.get("n_debris", 60)
@@ -1087,6 +1108,10 @@ class RacePlotter(BasePlotter):
                 artist.remove()
             crash_artists.clear()
 
+            # Reset time text
+            if show_time:
+                time_text.set_text("")
+
             return []
 
         # the update function for each frame
@@ -1163,6 +1188,10 @@ class RacePlotter(BasePlotter):
             # If not crashed, reset the flag
             update.crashed = False
             display_frame = frame
+
+            # Update the time text with the current simulation time
+            if show_time:
+                time_text.set_text(f"Time: {times[display_frame]:.2f}s")
 
             # draw the trajectory
             if display_frame > 0:
