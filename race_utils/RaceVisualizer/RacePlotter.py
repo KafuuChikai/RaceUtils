@@ -1119,7 +1119,7 @@ class RacePlotter(BasePlotter):
         def update(frame):
             # Update the time text with the current simulation time
             if show_time:
-                time_text.set_text(f"Time: {times[frame]:.2f}s")
+                time_text.set_text(f"Time: {(frame / fps):.2f}s")
 
             # --- Crash / End of Data Logic ---
             if self.crash_effect and frame >= len(positions):
