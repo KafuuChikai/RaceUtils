@@ -372,11 +372,12 @@ class BasePlotterList:
             video_name, ext = os.path.splitext(video_full_name)
             if not ext:
                 ext = ".mp4"
-            kwargs["video_name"] = f"{video_name}_drone{i + 1}{ext}"
+            kwargs["video_name"] = f"{video_name}{ext}"
             if i < self.num_plotters - 1:
                 kwargs["show_bar_info"] = False
                 kwargs["show_title"] = False
                 kwargs["show_time"] = False
+                kwargs["save_path"] = None
 
             # Pass the dedicated colorbar axes to the individual plotter
             plotter.ani_cax = sub_caxes[i]
@@ -1116,6 +1117,10 @@ class RacePlotter(BasePlotter):
 
         # the update function for each frame
         def update(frame):
+            # Update the time text with the current simulation time
+            if show_time:
+                time_text.set_text(f"Time: {times[frame]:.2f}s")
+
             # --- Crash / End of Data Logic ---
             if self.crash_effect and frame >= len(positions):
                 # If this is the first frame after data runs out, create the crash effect.
@@ -1188,10 +1193,6 @@ class RacePlotter(BasePlotter):
             # If not crashed, reset the flag
             update.crashed = False
             display_frame = frame
-
-            # Update the time text with the current simulation time
-            if show_time:
-                time_text.set_text(f"Time: {times[display_frame]:.2f}s")
 
             # draw the trajectory
             if display_frame > 0:
