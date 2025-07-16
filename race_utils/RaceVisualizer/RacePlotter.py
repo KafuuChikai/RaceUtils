@@ -32,6 +32,22 @@ class BasePlotter:
         end_time: Optional[int] = None,
         moving_gate_data: Optional[np.ndarray] = None,
     ):
+        """Initialize the BasePlotter class.
+
+        Parameters
+        ----------
+        traj_file : Union[os.PathLike, str, np.ndarray]
+            The trajectory file to load, which can be a path to a CSV file or a numpy array.
+        track_file : Union[os.PathLike, str, RaceTrack], optional
+            The track file to load, which can be a path to a YAML file or a RaceTrack object.
+        wpt_path : Optional[Union[os.PathLike, str]], optional
+            The path to the waypoints file, if any.
+        end_time : Optional[int], optional
+            The end time of the trajectory, if known.
+        moving_gate_data : Optional[np.ndarray], optional
+            The moving gate data, if any, as a numpy array with columns for time and position.
+
+        """
         if isinstance(traj_file, np.ndarray):
             data_ocp = traj_file
         else:
@@ -132,23 +148,55 @@ class BasePlotter:
         self.ani_ax = None
 
     def load_track(self, track_file: Union[os.PathLike, str, RaceTrack]) -> None:
+        """Load a track file into the plotter.
+
+        Parameters
+        ----------
+        track_file : Union[os.PathLike, str, RaceTrack]
+            The track file to load, which can be a path to a YAML file or a RaceTrack object.
+
+        """
         self.track_file = (
             track_file if isinstance(track_file, RaceTrack) else os.fspath(track_file)
         )
 
     def _ensure_2d_fig_exists(self) -> Tuple[plt.Figure, plt.Axes]:
+        """Ensure that the 2D figure and axes are created.
+
+        Returns
+        -------
+        Tuple[plt.Figure, plt.Axes]
+            the figure and axes for 2D plotting.
+
+        """
         if self._fig_2d is None:
             self._fig_2d = plt.figure(figsize=(8, 6))
             self.ax_2d = self._fig_2d.add_subplot(111)
         return self._fig_2d, self.ax_2d
 
     def _ensure_3d_fig_exists(self) -> Tuple[plt.Figure, plt.Axes]:
+        """Ensure that the 3D figure and axes are created.
+
+        Returns
+        -------
+        Tuple[plt.Figure, plt.Axes]
+            the figure and axes for 3D plotting.
+
+        """
         if self._fig_3d is None:
             self._fig_3d = plt.figure(figsize=(12, 8))
             self.ax_3d = self._fig_3d.add_axes([0, 0, 1, 1], projection="3d")
         return self._fig_3d, self.ax_3d
 
     def _ensure_ani_fig_exists(self) -> Tuple[plt.Figure, plt.Axes, plt.Axes]:
+        """Ensure that the animation figure and axes are created.
+
+        Returns
+        -------
+        Tuple[plt.Figure, plt.Axes, plt.Axes]
+            the figure and axes for animation plotting, containing the main 3D plot and a colorbar.
+
+        """
         if self._fig_ani is None:
             # Use a wider figure to comfortably fit the colorbar
             self._fig_ani = plt.figure(figsize=(14, 10))
@@ -161,6 +209,7 @@ class BasePlotter:
         return self._fig_ani, self.ani_ax
 
     def plot_show(self) -> None:
+        """Display the plot."""
         plt.show()
 
     def plot(self) -> None:
@@ -180,6 +229,18 @@ class BasePlotter:
     def save_2d_fig(
         self, save_path: Union[os.PathLike, str], fig_name: str, dpi: int = 300
     ) -> None:
+        """Save the 2D figure to a file.
+
+        Parameters
+        ----------
+        save_path : Union[os.PathLike, str]
+            The directory where the figure will be saved.
+        fig_name : str
+            The name of the figure file.
+        dpi : int, optional
+            The resolution of the saved figure in dots per inch (default is 300).
+
+        """
         save_path = os.fspath(save_path)
         os.makedirs(save_path, exist_ok=True)
         if not fig_name.endswith(".png"):
@@ -196,6 +257,22 @@ class BasePlotter:
         hide_background: bool = False,
         hide_ground: bool = False,
     ) -> None:
+        """Save the 3D figure to a file.
+
+        Parameters
+        ----------
+        save_path : Union[os.PathLike, str]
+            The directory where the figure will be saved.
+        fig_name : str
+            The name of the figure file.
+        dpi : int, optional
+            The resolution of the saved figure in dots per inch (default is 300).
+        hide_background : bool, optional
+            If True, hides the background of the 3D plot (default is False).
+        hide_ground : bool, optional
+            If True, hides the ground plane in the 3D plot (default is False).
+
+        """
         save_path = os.fspath(save_path)
         os.makedirs(save_path, exist_ok=True)
         if not fig_name.endswith(".png"):
@@ -273,6 +350,20 @@ class BasePlotter:
         ticks_count: int,
         axis: str = "x",
     ) -> None:
+        """Set nice ticks on the specified axis of the plot.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            The axes on which to set the ticks.
+        range_val : float
+            The range of the axis to determine the tick intervals.
+        ticks_count : int
+            The number of ticks to display on the axis.
+        axis : str, optional
+            The axis to set the ticks on, can be 'x', 'y', or 'z' (default is 'x').
+
+        """
         ticks_interval = range_val / (ticks_count - 1)
 
         # select base value for major ticks
