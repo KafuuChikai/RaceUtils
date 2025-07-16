@@ -180,7 +180,7 @@ def plot_track_3d(
     width: Optional[float] = None,
     height: Optional[float] = None,
     margin: float = 0,
-    gate_color: Optional[str] = None,
+    gate_color: Optional[Union[str, List[str]]] = None,
     gate_alpha: float = 0.1,
 ):
     """Plot the race track on a 3D axis.
@@ -235,7 +235,7 @@ def plot_gate_3d(
     width: Optional[float] = None,
     height: Optional[float] = None,
     margin: float = 0,
-    gate_color: Optional[str] = None,
+    gate_color: Optional[Union[str, List[str]]] = None,
     gate_alpha: float = 0.1,
 ):
     """Plot a single gate in 3D.
@@ -273,7 +273,7 @@ def plot_gate_3d(
     if isinstance(gates, dict):
         gates = [gates]
 
-    for g in gates:
+    for i, g in enumerate(gates):
         if g["type"] == "FreeCorridor":
             raise NotImplementedError("Not support plotting FreeCorridor gate")
 
@@ -291,8 +291,14 @@ def plot_gate_3d(
             y = position[1] + r * np.sin(u) * np.sin(v)
             z = position[2] + r * np.cos(v)
             # draw sphere
+            plot_gate_color = (
+                gate_color[i % len(gate_color)]
+                if isinstance(gate_color, list)
+                else gate_color
+            )
+            print("plotting sphere with color:", gate_color)
             surface = ax.plot_surface(
-                x, y, z, color=gate_color, alpha=gate_alpha, edgecolor="none"
+                x, y, z, color=plot_gate_color, alpha=gate_alpha, edgecolor="none"
             )
             artists.append(surface)
             # draw center
@@ -483,9 +489,14 @@ def plot_gate_3d(
             ]
             faces.extend(inner_sides)
 
+            plot_gate_color = (
+                gate_color[i % len(gate_color)]
+                if isinstance(gate_color, list)
+                else gate_color
+            )
             poly = Poly3DCollection(
                 faces,
-                facecolors=gate_color,
+                facecolors=plot_gate_color,
                 alpha=gate_alpha,
                 edgecolors="gray",
                 linewidths=1.0,
