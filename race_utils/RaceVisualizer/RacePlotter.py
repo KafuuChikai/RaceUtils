@@ -30,6 +30,7 @@ class BasePlotter:
         track_file: Union[os.PathLike, str, RaceTrack] = None,
         wpt_path: Optional[Union[os.PathLike, str]] = None,
         end_time: Optional[int] = None,
+        moving_gate_data: Optional[np.ndarray] = None,
     ):
         if isinstance(traj_file, np.ndarray):
             data_ocp = traj_file
@@ -84,6 +85,43 @@ class BasePlotter:
         self.ps = ps
         self.vs = vs
         self.vt = vt
+
+        if moving_gate_data is not None:
+            self.gate_t = moving_gate_data["t"][: len(data_ocp["t"])]
+            self.gate_p_x = moving_gate_data["p_x"][: len(data_ocp["t"])]
+            self.gate_p_y = moving_gate_data["p_y"][: len(data_ocp["t"])]
+            self.gate_p_z = moving_gate_data["p_z"][: len(data_ocp["t"])]
+
+            # Interpolate gate positions to match the high-resolution time steps 'ts'
+            if self.gate_p_x.ndim == 2:
+                num_gates = self.gate_p_x.shape[1]
+                num_ts = len(ts)
+
+                # Initialize the final array with shape (num_ts, num_gates, 3)
+                self.moving_gate_ps = np.zeros((num_ts, num_gates, 3))
+
+                for i in range(num_gates):
+                    # Interpolate each coordinate for the i-th gate
+                    self.moving_gate_ps[:, i, 0] = np.interp(
+                        ts, self.gate_t, self.gate_p_x[:, i]
+                    )
+                    self.moving_gate_ps[:, i, 1] = np.interp(
+                        ts, self.gate_t, self.gate_p_y[:, i]
+                    )
+                    self.moving_gate_ps[:, i, 2] = np.interp(
+                        ts, self.gate_t, self.gate_p_z[:, i]
+                    )
+            else:
+                # Fallback for 1D data (single gate case)
+                self.moving_gate_ps = np.array(
+                    [
+                        np.interp(ts, self.gate_t, self.gate_p_x),
+                        np.interp(ts, self.gate_t, self.gate_p_y),
+                        np.interp(ts, self.gate_t, self.gate_p_z),
+                    ]
+                ).T
+        else:
+            self.moving_gate_ps = None
 
         # initialize the plot
         self._fig_2d = None
@@ -404,12 +442,14 @@ class RacePlotter(BasePlotter):
         end_time: Optional[int] = None,
         crash_effect: Optional[bool] = False,
         crash_kwargs: dict = {},
+        moving_gate_data: Optional[np.ndarray] = None,
     ):
         super().__init__(
             traj_file=traj_file,
             track_file=track_file,
             wpt_path=wpt_path,
             end_time=end_time,
+            moving_gate_data=moving_gate_data,
         )
         self.crash_effect = crash_effect
         self.crash_kwargs = crash_kwargs
@@ -966,6 +1006,36 @@ class RacePlotter(BasePlotter):
         time_steps = (
             positions.shape[0] if max_frame <= 0 else max(max_frame, positions.shape[0])
         )
+        if self.moving_gate_ps is not None:
+            if self.gate_p_x.ndim == 2:
+                num_gates = self.gate_p_x.shape[1]
+                num_ts = len(times)
+
+                # Initialize the final array with shape (num_ts, num_gates, 3)
+                moving_gate_ps = np.zeros((num_ts, num_gates, 3))
+
+                for i in range(num_gates):
+                    # Interpolate each coordinate for the i-th gate
+                    moving_gate_ps[:, i, 0] = np.interp(
+                        times, self.gate_t, self.gate_p_x[:, i]
+                    )
+                    moving_gate_ps[:, i, 1] = np.interp(
+                        times, self.gate_t, self.gate_p_y[:, i]
+                    )
+                    moving_gate_ps[:, i, 2] = np.interp(
+                        times, self.gate_t, self.gate_p_z[:, i]
+                    )
+            else:
+                # Fallback for 1D data (single gate case)
+                moving_gate_ps = np.array(
+                    [
+                        np.interp(times, self.gate_t, self.gate_p_x),
+                        np.interp(times, self.gate_t, self.gate_p_y),
+                        np.interp(times, self.gate_t, self.gate_p_z),
+                    ]
+                ).T
+        else:
+            moving_gate_ps = None
 
         # create lines for the drone
         quad_artists = []
@@ -975,12 +1045,61 @@ class RacePlotter(BasePlotter):
 
         # plot the track
         if self.track_file is not None:
-            if not flash_gate:
-                plot_track_3d(
-                    ax,
-                    self.track_file,
-                    **track_kargs,
-                )
+            if moving_gate_ps is not None:
+                track = self.track_file.to_dict()
+                gates = []
+                gate_counter = 0
+                for gate_id in track["orders"]:
+                    gate_temp = track[gate_id]
+                    gate_temp["position"] = moving_gate_ps[0][gate_counter].tolist()
+                    gates.append(gate_temp)
+                    gate_counter += 1
+                track_len = len(gates)
+            elif not flash_gate:
+                if isinstance(self.track_file, RaceTrack):
+                    # If the track is a RaceTrack object, use its to_dict method
+                    track = self.track_file.to_dict()
+                    gates = []
+                    # Populate the gates list from the track data
+                    for gate_id in track["orders"]:
+                        gates.append(track[gate_id])
+                    track_len = len(gates)
+
+                    # Filter out gates that are in overlapping positions
+                    gates_to_plot = []
+                    unique_positions = []
+                    # A small distance threshold to consider positions as identical
+                    overlap_threshold = 1e-2  # 1 cm
+
+                    for gate in gates:
+                        current_pos = np.array(gate["position"])
+                        is_unique = True
+                        # Check if the current gate's position is too close to any already added unique positions
+                        for unique_pos in unique_positions:
+                            if (
+                                np.linalg.norm(current_pos - unique_pos)
+                                < overlap_threshold
+                            ):
+                                is_unique = False
+                                break
+
+                        if is_unique:
+                            gates_to_plot.append(gate)
+                            unique_positions.append(current_pos)
+
+                    # draw the gates
+                    if gates_to_plot:
+                        artists = plot_gate_3d(
+                            ax,
+                            gates_to_plot,  # Pass the filtered list
+                            **track_kargs,
+                        )
+                else:
+                    plot_track_3d(
+                        ax,
+                        self.track_file,
+                        **track_kargs,
+                    )
             else:
                 track = self.track_file.to_dict()
                 gates = []
@@ -1280,6 +1399,11 @@ class RacePlotter(BasePlotter):
                             pass
                     gate_artists.clear()
 
+                    if moving_gate_ps is not None:
+                        gates[update.next_id]["position"] = moving_gate_ps[
+                            display_frame, update.next_id
+                        ]
+
                     # draw the next gate
                     artists = plot_gate_3d(
                         ax,
@@ -1294,6 +1418,45 @@ class RacePlotter(BasePlotter):
                         < gates[update.next_id]["radius"]
                     ):
                         update.next_id += 1
+            elif moving_gate_ps is not None:
+                # clear previous gate artists
+                for artist in gate_artists:
+                    try:
+                        artist.remove()
+                    except:
+                        pass
+                gate_artists.clear()
+
+                for i in range(len(gates)):
+                    gates[i]["position"] = moving_gate_ps[display_frame, i]
+
+                # Filter out gates that are in overlapping positions
+                gates_to_plot = []
+                unique_positions = []
+                # A small distance threshold to consider positions as identical
+                overlap_threshold = 1e-2  # 1 cm
+
+                for gate in gates:
+                    current_pos = np.array(gate["position"])
+                    is_unique = True
+                    # Check if the current gate's position is too close to any already added unique positions
+                    for unique_pos in unique_positions:
+                        if np.linalg.norm(current_pos - unique_pos) < overlap_threshold:
+                            is_unique = False
+                            break
+
+                    if is_unique:
+                        gates_to_plot.append(gate)
+                        unique_positions.append(current_pos)
+
+                # draw the gates
+                if gates_to_plot:
+                    artists = plot_gate_3d(
+                        ax,
+                        gates_to_plot,  # Pass the filtered list
+                        **track_kargs,
+                    )
+                    gate_artists.extend(artists)
 
             # support follow camera
             if follow_drone:
