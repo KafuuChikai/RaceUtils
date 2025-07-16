@@ -167,7 +167,7 @@ def plot_track_3d(
 
 def plot_gate_3d(
     ax,
-    g,
+    gates,
     radius=None,
     width=None,
     height=None,
@@ -207,269 +207,275 @@ def plot_gate_3d(
 
     artists = []
 
-    if g["type"] == "FreeCorridor":
-        raise NotImplementedError("Not support plotting FreeCorridor gate")
+    if isinstance(gates, dict):
+        gates = [gates]
 
-    args = {"linewidth": 9.0, "markersize": 15.0, "color": "gray"}
+    for g in gates:
+        if g["type"] == "FreeCorridor":
+            raise NotImplementedError("Not support plotting FreeCorridor gate")
 
-    if g["type"] == "SingleBall":
-        position = g["position"]
-        r = g["radius"] - g["margin"]
-        if radius is not None:
-            r = radius - margin
+        args = {"linewidth": 9.0, "markersize": 15.0, "color": "gray"}
 
-        # create sphere
-        u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
-        x = position[0] + r * np.cos(u) * np.sin(v)
-        y = position[1] + r * np.sin(u) * np.sin(v)
-        z = position[2] + r * np.cos(v)
-        # draw sphere
-        surface = ax.plot_surface(
-            x, y, z, color=gate_color, alpha=gate_alpha, edgecolor="none"
-        )
-        artists.append(surface)
-        # draw center
-        scatter = ax.scatter(position[0], position[1], position[2], color="black", s=50)
-        artists.append(scatter)
+        if g["type"] == "SingleBall":
+            position = g["position"]
+            r = g["radius"] - g["margin"]
+            if radius is not None:
+                r = radius - margin
 
-    elif g["type"] == "TrianglePrisma":
-        position = g["position"]
-        R = rpy_to_rotation_matrix(g["rpy"])
-        hw = 0.5 * (g["width"] - g["margin"])
-        hh = 0.5 * (g["height"] - g["margin"])
-        if width is not None:
-            hw = 0.5 * (width - margin)
-        if height is not None:
-            hh = 0.5 * (height - margin)
-        drift = 0.0
-        verts = [
-            [-hh, hw, drift],
-            [hh, 0.0, drift],
-            [-hh, -hw, drift],
-            [-hh, hw, drift],
-        ] @ R.T + np.array(position).reshape((1, 3))
-        line = ax.plot(verts[:, 0], verts[:, 1], verts[:, 2], "o-", **args)
-        artists.append(line)
+            # create sphere
+            u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
+            x = position[0] + r * np.cos(u) * np.sin(v)
+            y = position[1] + r * np.sin(u) * np.sin(v)
+            z = position[2] + r * np.cos(v)
+            # draw sphere
+            surface = ax.plot_surface(
+                x, y, z, color=gate_color, alpha=gate_alpha, edgecolor="none"
+            )
+            artists.append(surface)
+            # draw center
+            scatter = ax.scatter(
+                position[0], position[1], position[2], color="black", s=50
+            )
+            artists.append(scatter)
 
-    elif g["type"] == "RectanglePrisma":
-        position = g["position"]
-        R = rpy_to_rotation_matrix(g["rpy"])
-        hw = 0.5 * (g["width"] - g["marginW"])
-        hh = 0.5 * (g["height"] - g["marginH"])
-        if width is not None:
-            hw = 0.5 * (width - margin)
-        if height is not None:
-            hh = 0.5 * (height - margin)
-        drift = 0.0
-        thickness = 0.1 * min(hw, hh)
+        elif g["type"] == "TrianglePrisma":
+            position = g["position"]
+            R = rpy_to_rotation_matrix(g["rpy"])
+            hw = 0.5 * (g["width"] - g["margin"])
+            hh = 0.5 * (g["height"] - g["margin"])
+            if width is not None:
+                hw = 0.5 * (width - margin)
+            if height is not None:
+                hh = 0.5 * (height - margin)
+            drift = 0.0
+            verts = [
+                [-hh, hw, drift],
+                [hh, 0.0, drift],
+                [-hh, -hw, drift],
+                [-hh, hw, drift],
+            ] @ R.T + np.array(position).reshape((1, 3))
+            line = ax.plot(verts[:, 0], verts[:, 1], verts[:, 2], "o-", **args)
+            artists.append(line)
 
-        front_outer_verts = np.array(
-            [
-                [-hh, hw, -thickness / 2],
-                [-hh, -hw, -thickness / 2],
-                [hh, -hw, -thickness / 2],
-                [hh, hw, -thickness / 2],
+        elif g["type"] == "RectanglePrisma":
+            position = g["position"]
+            R = rpy_to_rotation_matrix(g["rpy"])
+            hw = 0.5 * (g["width"] - g["marginW"])
+            hh = 0.5 * (g["height"] - g["marginH"])
+            if width is not None:
+                hw = 0.5 * (width - margin)
+            if height is not None:
+                hh = 0.5 * (height - margin)
+            drift = 0.0
+            thickness = 0.1 * min(hw, hh)
+
+            front_outer_verts = np.array(
+                [
+                    [-hh, hw, -thickness / 2],
+                    [-hh, -hw, -thickness / 2],
+                    [hh, -hw, -thickness / 2],
+                    [hh, hw, -thickness / 2],
+                ]
+            ) @ R.T + np.array(position).reshape((1, 3))
+
+            inner_scale = 0.8
+            front_inner_verts = np.array(
+                [
+                    [-hh * inner_scale, hw * inner_scale, -thickness / 2],
+                    [-hh * inner_scale, -hw * inner_scale, -thickness / 2],
+                    [hh * inner_scale, -hw * inner_scale, -thickness / 2],
+                    [hh * inner_scale, hw * inner_scale, -thickness / 2],
+                ]
+            ) @ R.T + np.array(position).reshape((1, 3))
+
+            back_outer_verts = np.array(
+                [
+                    [-hh, hw, thickness / 2],
+                    [-hh, -hw, thickness / 2],
+                    [hh, -hw, thickness / 2],
+                    [hh, hw, thickness / 2],
+                ]
+            ) @ R.T + np.array(position).reshape((1, 3))
+
+            back_inner_verts = np.array(
+                [
+                    [-hh * inner_scale, hw * inner_scale, thickness / 2],
+                    [-hh * inner_scale, -hw * inner_scale, thickness / 2],
+                    [hh * inner_scale, -hw * inner_scale, thickness / 2],
+                    [hh * inner_scale, hw * inner_scale, thickness / 2],
+                ]
+            ) @ R.T + np.array(position).reshape((1, 3))
+
+            faces = []
+
+            front_ring = [
+                [
+                    front_outer_verts[0],
+                    front_outer_verts[1],
+                    front_inner_verts[1],
+                    front_inner_verts[0],
+                ],  # 左侧
+                [
+                    front_outer_verts[1],
+                    front_outer_verts[2],
+                    front_inner_verts[2],
+                    front_inner_verts[1],
+                ],  # 底部
+                [
+                    front_outer_verts[2],
+                    front_outer_verts[3],
+                    front_inner_verts[3],
+                    front_inner_verts[2],
+                ],  # 右侧
+                [
+                    front_outer_verts[3],
+                    front_outer_verts[0],
+                    front_inner_verts[0],
+                    front_inner_verts[3],
+                ],  # 顶部
             ]
-        ) @ R.T + np.array(position).reshape((1, 3))
+            faces.extend(front_ring)
 
-        inner_scale = 0.8
-        front_inner_verts = np.array(
-            [
-                [-hh * inner_scale, hw * inner_scale, -thickness / 2],
-                [-hh * inner_scale, -hw * inner_scale, -thickness / 2],
-                [hh * inner_scale, -hw * inner_scale, -thickness / 2],
-                [hh * inner_scale, hw * inner_scale, -thickness / 2],
+            back_ring = [
+                [
+                    back_outer_verts[0],
+                    back_outer_verts[1],
+                    back_inner_verts[1],
+                    back_inner_verts[0],
+                ],  # 左侧
+                [
+                    back_outer_verts[1],
+                    back_outer_verts[2],
+                    back_inner_verts[2],
+                    back_inner_verts[1],
+                ],  # 底部
+                [
+                    back_outer_verts[2],
+                    back_outer_verts[3],
+                    back_inner_verts[3],
+                    back_inner_verts[2],
+                ],  # 右侧
+                [
+                    back_outer_verts[3],
+                    back_outer_verts[0],
+                    back_inner_verts[0],
+                    back_inner_verts[3],
+                ],  # 顶部
             ]
-        ) @ R.T + np.array(position).reshape((1, 3))
+            faces.extend(back_ring)
 
-        back_outer_verts = np.array(
-            [
-                [-hh, hw, thickness / 2],
-                [-hh, -hw, thickness / 2],
-                [hh, -hw, thickness / 2],
-                [hh, hw, thickness / 2],
+            outer_sides = [
+                [
+                    front_outer_verts[0],
+                    front_outer_verts[1],
+                    back_outer_verts[1],
+                    back_outer_verts[0],
+                ],  # 左外侧
+                [
+                    front_outer_verts[1],
+                    front_outer_verts[2],
+                    back_outer_verts[2],
+                    back_outer_verts[1],
+                ],  # 底外侧
+                [
+                    front_outer_verts[2],
+                    front_outer_verts[3],
+                    back_outer_verts[3],
+                    back_outer_verts[2],
+                ],  # 右外侧
+                [
+                    front_outer_verts[3],
+                    front_outer_verts[0],
+                    back_outer_verts[0],
+                    back_outer_verts[3],
+                ],  # 顶外侧
             ]
-        ) @ R.T + np.array(position).reshape((1, 3))
+            faces.extend(outer_sides)
 
-        back_inner_verts = np.array(
-            [
-                [-hh * inner_scale, hw * inner_scale, thickness / 2],
-                [-hh * inner_scale, -hw * inner_scale, thickness / 2],
-                [hh * inner_scale, -hw * inner_scale, thickness / 2],
-                [hh * inner_scale, hw * inner_scale, thickness / 2],
+            inner_sides = [
+                [
+                    front_inner_verts[0],
+                    front_inner_verts[1],
+                    back_inner_verts[1],
+                    back_inner_verts[0],
+                ],  # 左内侧
+                [
+                    front_inner_verts[1],
+                    front_inner_verts[2],
+                    back_inner_verts[2],
+                    back_inner_verts[1],
+                ],  # 底内侧
+                [
+                    front_inner_verts[2],
+                    front_inner_verts[3],
+                    back_inner_verts[3],
+                    back_inner_verts[2],
+                ],  # 右内侧
+                [
+                    front_inner_verts[3],
+                    front_inner_verts[0],
+                    back_inner_verts[0],
+                    back_inner_verts[3],
+                ],  # 顶内侧
             ]
-        ) @ R.T + np.array(position).reshape((1, 3))
+            faces.extend(inner_sides)
 
-        faces = []
+            poly = Poly3DCollection(
+                faces,
+                facecolors=gate_color,
+                alpha=gate_alpha,
+                edgecolors="gray",
+                linewidths=1.0,
+            )
+            ax.add_collection3d(poly)
+            artists.append(poly)
 
-        front_ring = [
-            [
-                front_outer_verts[0],
-                front_outer_verts[1],
-                front_inner_verts[1],
-                front_inner_verts[0],
-            ],  # 左侧
-            [
-                front_outer_verts[1],
-                front_outer_verts[2],
-                front_inner_verts[2],
-                front_inner_verts[1],
-            ],  # 底部
-            [
-                front_outer_verts[2],
-                front_outer_verts[3],
-                front_inner_verts[3],
-                front_inner_verts[2],
-            ],  # 右侧
-            [
-                front_outer_verts[3],
-                front_outer_verts[0],
-                front_inner_verts[0],
-                front_inner_verts[3],
-            ],  # 顶部
-        ]
-        faces.extend(front_ring)
+        elif g["type"] == "PentagonPrisma":
+            position = g["position"]
+            R = rpy_to_rotation_matrix(g["rpy"])
+            ar = g["radius"] - g["margin"]
+            if radius is not None:
+                ar = radius - margin
+            cos54 = np.cos(0.3 * np.pi)
+            sin54 = np.sin(0.3 * np.pi)
+            nd, on = ar * cos54, ar * sin54
+            bc = 2 * nd
+            fc = bc * sin54
+            of = ar - bc * cos54
+            drift = 0.0
+            verts = [
+                [-on, nd, drift],
+                [of, fc, drift],
+                [ar, 0.0, drift],
+                [of, -fc, drift],
+                [-on, -nd, drift],
+                [-on, nd, drift],
+            ] @ R.T + np.array(position).reshape((1, 3))
+            line = ax.plot(verts[:, 0], verts[:, 1], verts[:, 2], "o-", **args)
+            artists.append(line)
 
-        back_ring = [
-            [
-                back_outer_verts[0],
-                back_outer_verts[1],
-                back_inner_verts[1],
-                back_inner_verts[0],
-            ],  # 左侧
-            [
-                back_outer_verts[1],
-                back_outer_verts[2],
-                back_inner_verts[2],
-                back_inner_verts[1],
-            ],  # 底部
-            [
-                back_outer_verts[2],
-                back_outer_verts[3],
-                back_inner_verts[3],
-                back_inner_verts[2],
-            ],  # 右侧
-            [
-                back_outer_verts[3],
-                back_outer_verts[0],
-                back_inner_verts[0],
-                back_inner_verts[3],
-            ],  # 顶部
-        ]
-        faces.extend(back_ring)
+        elif g["type"] == "HexagonPrisma":
+            position = g["position"]
+            R = rpy_to_rotation_matrix(g["rpy"])
+            aside = g["side"] - g["margin"]
+            if radius is not None:
+                aside = radius - margin
+            hside = 0.5 * aside
+            height = hside * np.tan(np.pi / 3.0)
+            drift = 0.0
+            verts = [
+                [-height, hside, drift],
+                [0.0, aside, drift],
+                [height, hside, drift],
+                [height, -hside, drift],
+                [0.0, -aside, drift],
+                [-height, -hside, drift],
+                [-height, hside, drift],
+            ] @ R.T + np.array(position).reshape((1, 3))
+            line = ax.plot(verts[:, 0], verts[:, 1], verts[:, 2], "o-", **args)
+            artists.append(line)
 
-        outer_sides = [
-            [
-                front_outer_verts[0],
-                front_outer_verts[1],
-                back_outer_verts[1],
-                back_outer_verts[0],
-            ],  # 左外侧
-            [
-                front_outer_verts[1],
-                front_outer_verts[2],
-                back_outer_verts[2],
-                back_outer_verts[1],
-            ],  # 底外侧
-            [
-                front_outer_verts[2],
-                front_outer_verts[3],
-                back_outer_verts[3],
-                back_outer_verts[2],
-            ],  # 右外侧
-            [
-                front_outer_verts[3],
-                front_outer_verts[0],
-                back_outer_verts[0],
-                back_outer_verts[3],
-            ],  # 顶外侧
-        ]
-        faces.extend(outer_sides)
-
-        inner_sides = [
-            [
-                front_inner_verts[0],
-                front_inner_verts[1],
-                back_inner_verts[1],
-                back_inner_verts[0],
-            ],  # 左内侧
-            [
-                front_inner_verts[1],
-                front_inner_verts[2],
-                back_inner_verts[2],
-                back_inner_verts[1],
-            ],  # 底内侧
-            [
-                front_inner_verts[2],
-                front_inner_verts[3],
-                back_inner_verts[3],
-                back_inner_verts[2],
-            ],  # 右内侧
-            [
-                front_inner_verts[3],
-                front_inner_verts[0],
-                back_inner_verts[0],
-                back_inner_verts[3],
-            ],  # 顶内侧
-        ]
-        faces.extend(inner_sides)
-
-        poly = Poly3DCollection(
-            faces,
-            facecolors=gate_color,
-            alpha=gate_alpha,
-            edgecolors="gray",
-            linewidths=1.0,
-        )
-        ax.add_collection3d(poly)
-        artists.append(poly)
-
-    elif g["type"] == "PentagonPrisma":
-        position = g["position"]
-        R = rpy_to_rotation_matrix(g["rpy"])
-        ar = g["radius"] - g["margin"]
-        if radius is not None:
-            ar = radius - margin
-        cos54 = np.cos(0.3 * np.pi)
-        sin54 = np.sin(0.3 * np.pi)
-        nd, on = ar * cos54, ar * sin54
-        bc = 2 * nd
-        fc = bc * sin54
-        of = ar - bc * cos54
-        drift = 0.0
-        verts = [
-            [-on, nd, drift],
-            [of, fc, drift],
-            [ar, 0.0, drift],
-            [of, -fc, drift],
-            [-on, -nd, drift],
-            [-on, nd, drift],
-        ] @ R.T + np.array(position).reshape((1, 3))
-        line = ax.plot(verts[:, 0], verts[:, 1], verts[:, 2], "o-", **args)
-        artists.append(line)
-
-    elif g["type"] == "HexagonPrisma":
-        position = g["position"]
-        R = rpy_to_rotation_matrix(g["rpy"])
-        aside = g["side"] - g["margin"]
-        if radius is not None:
-            aside = radius - margin
-        hside = 0.5 * aside
-        height = hside * np.tan(np.pi / 3.0)
-        drift = 0.0
-        verts = [
-            [-height, hside, drift],
-            [0.0, aside, drift],
-            [height, hside, drift],
-            [height, -hside, drift],
-            [0.0, -aside, drift],
-            [-height, -hside, drift],
-            [-height, hside, drift],
-        ] @ R.T + np.array(position).reshape((1, 3))
-        line = ax.plot(verts[:, 0], verts[:, 1], verts[:, 2], "o-", **args)
-        artists.append(line)
-
-    else:
-        raise ValueError("Unrecognized gate: " + g["type"])
+        else:
+            raise ValueError("Unrecognized gate: " + g["type"])
 
     return artists
