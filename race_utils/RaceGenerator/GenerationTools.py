@@ -16,7 +16,21 @@ KEYS_TO_QUOTE = ["type", "name"]
 
 def quote_specific_keys(
     data: Union[dict, List[dict], str], keys_to_quote: List[str] = KEYS_TO_QUOTE
-):
+) -> Union[dict, List[dict], str]:
+    """Recursively quote specific keys in a dictionary or list of dictionaries.
+
+    Parameters
+    ----------
+    data : Union[dict, List[dict], str]
+        The data to process, which can be a dictionary, a list of dictionaries, or a string.
+    keys_to_quote : List[str]
+        The keys that should be quoted in the dictionary.
+
+    Returns
+    -------
+    Union[dict, List[dict], str]
+        The processed data with specified keys quoted as SingleQuotedScalarString.
+    """
     if isinstance(data, dict):
         for key, value in data.items():
             if key in keys_to_quote and isinstance(value, str):
@@ -33,6 +47,18 @@ def quote_specific_keys(
 
 
 def get_shape_class(gate_shape: str) -> BaseShape:
+    """Get the class of the gate shape based on its type.
+
+    Parameters
+    ----------
+    gate_shape : str
+        The type of the gate shape as a string.
+
+    Returns
+    -------
+    BaseShape
+        The class corresponding to the gate shape type.
+    """
     shape_classes = {
         "SingleBall": SingleBall,
         "TrianglePrisma": TrianglePrisma,
@@ -44,6 +70,18 @@ def get_shape_class(gate_shape: str) -> BaseShape:
 
 
 def create_state(state_kwargs: dict) -> State:
+    """Create a State object from the given parameters.
+
+    Parameters
+    ----------
+    state_kwargs : dict
+        A dictionary containing the parameters for the state.
+
+    Returns
+    -------
+    State
+        An instance of the State class initialized with the provided parameters.
+    """
     missing_pos = True if "pos" not in state_kwargs else False
     if missing_pos:
         raise ValueError("Missing parameters for State: pos")
@@ -58,6 +96,26 @@ def create_gate(
     shape_kwargs: dict,
     name: Optional[str] = None,
 ) -> Gate:
+    """Create a Gate object with the specified parameters.
+
+    Parameters
+    ----------
+    gate_type : Union[Type[BaseShape], str]
+        The type of the gate shape, either as a class or a string.
+    position : Union[List[float], np.ndarray]
+        The position of the gate in 3D space.
+    stationary : bool
+        Whether the gate is stationary or not.
+    shape_kwargs : dict
+        A dictionary containing the parameters for the gate shape.
+    name : Optional[str]
+        The name of the gate. If not provided, it will be generated automatically.
+
+    Returns
+    -------
+    Gate
+        An instance of the Gate class initialized with the provided parameters.
+    """
     shape_params = {
         "SingleBall": ["radius", "margin"],
         "TrianglePrisma": ["rpy", "length", "midpoints", "width", "height", "margin"],
