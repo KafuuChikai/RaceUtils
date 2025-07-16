@@ -30,6 +30,7 @@ def quote_specific_keys(
     -------
     Union[dict, List[dict], str]
         The processed data with specified keys quoted as SingleQuotedScalarString.
+
     """
     if isinstance(data, dict):
         for key, value in data.items():
@@ -58,6 +59,7 @@ def get_shape_class(gate_shape: str) -> BaseShape:
     -------
     BaseShape
         The class corresponding to the gate shape type.
+
     """
     shape_classes = {
         "SingleBall": SingleBall,
@@ -81,6 +83,7 @@ def create_state(state_kwargs: dict) -> State:
     -------
     State
         An instance of the State class initialized with the provided parameters.
+
     """
     missing_pos = True if "pos" not in state_kwargs else False
     if missing_pos:
@@ -115,6 +118,7 @@ def create_gate(
     -------
     Gate
         An instance of the Gate class initialized with the provided parameters.
+
     """
     shape_params = {
         "SingleBall": ["radius", "margin"],
