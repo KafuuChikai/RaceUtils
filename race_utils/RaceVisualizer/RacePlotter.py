@@ -1738,7 +1738,7 @@ class RacePlotter(BasePlotter):
 
             # If not crashed, reset the flag
             update.crashed = False
-            display_frame = frame
+            display_frame = min(frame, len(positions) - 1)
 
             # draw the trajectory
             if display_frame > 0:
