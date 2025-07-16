@@ -20,6 +20,17 @@ class RaceTrack(BaseRaceClass):
     def __init__(
         self, init_state: State, end_state: State, race_name: Optional[str] = None
     ):
+        """Initialize the RaceTrack class.
+
+        Parameters
+        ----------
+        init_state : State
+            The initial state of the race track.
+        end_state : State
+            The end state of the race track.
+        race_name : Optional[str]
+            The name of the race track. If None, a default name will be used.
+        """
         self.initState = init_state
         self.endState = end_state
         self.race_name = race_name
@@ -27,19 +38,41 @@ class RaceTrack(BaseRaceClass):
         self.gate_sequence = []
         self.gate_num = 0
 
-    def add_gate(self, gate: Gate, gate_name: Optional[str] = None):
+    def add_gate(self, gate: Gate, gate_name: Optional[str] = None) -> None:
+        """Add a gate to the race track.
+
+        Parameters
+        ----------
+        gate : Gate
+            The gate to add to the race track.
+        gate_name : Optional[str]
+            The name of the gate. If None, a default name will be generated.
+        """
         if gate_name is None:
             self.gate_num += 1
             gate_name = "Gate" + str(self.gate_num)
         self.orders.append(gate_name)
         self.gate_sequence.append([gate_name, gate])
 
-    def clear_gates(self):
+    def clear_gates(self) -> None:
+        """Clear all gates from the race track."""
         self.orders = []
         self.gate_sequence = []
         self.gate_num = 0
 
     def get_gate_dict(self, ordered: bool = False) -> Union[dict, CommentedMap]:
+        """Get the dictionary representation of the gates in the race track.
+
+        Parameters
+        ----------
+        ordered : bool
+            If True, return an ordered dictionary. If False, return a regular dictionary.
+
+        Returns
+        -------
+        Union[dict, CommentedMap]
+            The dictionary representation of the gates.
+        """
         gate_dict = CommentedMap() if ordered else {}
         for gate_info in self.gate_sequence:
             if ordered:
@@ -49,6 +82,13 @@ class RaceTrack(BaseRaceClass):
         return gate_dict
 
     def to_dict(self) -> dict:
+        """Convert the race track to a dictionary.
+
+        Returns
+        -------
+        dict
+            A dictionary representation of the race track.
+        """
         data = {
             "initState": self.initState.to_dict(),
             "endState": self.endState.to_dict(),
@@ -58,6 +98,13 @@ class RaceTrack(BaseRaceClass):
         return data
 
     def to_ordered_dict(self) -> CommentedMap:
+        """Convert the race track to an ordered dictionary.
+
+        Returns
+        -------
+        CommentedMap
+            An ordered dictionary representation of the race track.
+        """
         data = CommentedMap()
         data["initState"] = self.initState.to_ordered_dict()
         data["endState"] = self.endState.to_ordered_dict()
@@ -76,6 +123,24 @@ class RaceTrack(BaseRaceClass):
         standard: bool = True,
         save_output: bool = True,
     ) -> bool:
+        """Save the race track to a YAML file.
+
+        Parameters
+        ----------
+        save_dir : Optional[Union[os.PathLike, str]]
+            The directory where the YAML file will be saved. If None, it will be saved in the current working directory.
+        overwrite : bool
+            If True, overwrite the existing file if it exists. If False, append a number to the file name if it exists.
+        standard : bool
+            If True, save the file in standard format. If False, save it in a custom format.
+        save_output : bool
+            If True, print the success message after saving the file.
+
+        Returns
+        -------
+        bool
+            True if the file was saved successfully, False otherwise.
+        """
         if self.gate_sequence == []:
             Warning("No gate has been added! The race track will not be saved.")
             return False
@@ -127,7 +192,15 @@ class RaceTrack(BaseRaceClass):
                     print(f"Error saving to YAML: {e}")
                 return False
 
-    def load_from_yaml(self, load_dir: Optional[Union[os.PathLike, str]]):
+    def load_from_yaml(self, load_dir: Optional[Union[os.PathLike, str]]) -> None:
+        """Load the race track from a YAML file.
+
+        Parameters
+        ----------
+        load_dir : Optional[Union[os.PathLike, str]]
+            The directory where the YAML file is located. If None, it will not load any file
+            and will not change the current race track.
+        """
         gate_param_list = ["type", "name", "position", "stationary"]
         load_dir = os.fspath(load_dir)
         self.race_name = os.path.splitext(os.path.basename(load_dir))[0]
