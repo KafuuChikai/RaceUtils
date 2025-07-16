@@ -23,7 +23,7 @@ class BaseRaceClass:
             The keys in the order they should appear.
         dict : dict
             The dictionary to convert.
-        
+
         Returns
         -------
         CommentedMap
@@ -63,7 +63,7 @@ class State(BaseRaceClass):
         ] = None,  # (3,) - euler angles [roll, pitch, yaw]
     ):
         """Initialize a state with position, velocity, acceleration, jerk, rotation, collective thrust mass, and euler angles.
-        
+
         Parameters
         ----------
         pos : Union[List[float], np.ndarray]
@@ -208,7 +208,7 @@ class Gate(BaseRaceClass):
 
     def set_position(self, position: Union[List[float], np.ndarray]):
         """Set the position of the gate.
-        
+
         Parameters
         ----------
         position : Union[List[float], np.ndarray]
