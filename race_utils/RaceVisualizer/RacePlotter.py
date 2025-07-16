@@ -401,6 +401,14 @@ class BasePlotterList:
     """
 
     def __init__(self, plotters: List[BasePlotter]):
+        """Initialize the BasePlotterList with a list of plotters.
+
+        Parameters
+        ----------
+        plotters : List[BasePlotter]
+            List of BasePlotter objects to be managed by this class.
+
+        """
         assert isinstance(plotters, list)
         self.plotters = plotters
         self.num_plotters = len(plotters)
@@ -409,6 +417,14 @@ class BasePlotterList:
         self.ani_cax = None
 
     def _ensure_ani_fig_exists(self) -> Tuple[plt.Figure, plt.Axes, plt.Axes]:
+        """Ensure that the animation figure and axes are created.
+
+        Returns
+        -------
+        Tuple[plt.Figure, plt.Axes, plt.Axes]
+            the figure and axes for animation plotting, containing the main 3D plot and a colorbar.
+
+        """
         if self._fig_ani is None:
             # Use a wider figure to comfortably fit the colorbar
             self._fig_ani = plt.figure(figsize=(14, 10))
@@ -425,12 +441,31 @@ class BasePlotterList:
         track_file: Union[os.PathLike, str, RaceTrack],
         index: Optional[list] = None,
     ) -> None:
+        """Load a track file into the plotters.
+
+        Parameters
+        ----------
+        track_file : Union[os.PathLike, str, RaceTrack]
+            The track file to load, which can be a path to a YAML file or a RaceTrack object.
+        index : Optional[list], optional
+            List of indices of the plotters to load the track file into. If None, all plotters will load the track file.
+
+        """
         if index is None:
             index = list(range(self.num_plotters))
         for i in index:
             self.plotters[i].load_track(track_file)
 
     def plot(self, **input_kwargs) -> None:
+        """Plot the trajectories of all plotters in 2D.
+
+        Parameters
+        ----------
+        input_kwargs : dict
+            Additional keyword arguments for the plot function, such as `fig_name`, `fig_title`,
+            `cmap`, etc.
+
+        """
         input_kwargs["fig_name"] = input_kwargs.get("fig_name", "racetrack")
         input_kwargs["fig_title"] = input_kwargs.get("fig_title", "racetrack")
         fig_name = input_kwargs["fig_name"]
@@ -444,6 +479,15 @@ class BasePlotterList:
             plotter.plot(**kwargs)
 
     def plot3d(self, **input_kwargs) -> None:
+        """Plot the trajectories of all plotters in 3D.
+
+        Parameters
+        ----------
+        input_kwargs : dict
+            Additional keyword arguments for the plot3d function, such as `fig_name`, `fig_title`,
+            `cmap`, etc.
+
+        """
         input_kwargs["fig_name"] = input_kwargs.get("fig_name", "racetrack")
         input_kwargs["fig_title"] = input_kwargs.get("fig_title", "racetrack")
         fig_name = input_kwargs["fig_name"]
@@ -457,6 +501,19 @@ class BasePlotterList:
             plotter.plot3d(**kwargs)
 
     def create_animation(self, **input_kwargs) -> List[animation.FuncAnimation]:
+        """Create animations for all plotters.
+
+        Parameters
+        ----------
+        input_kwargs : dict
+            Additional keyword arguments for the create_animation function, such as `video_name`, `cmap`, `plot_colorbar`, etc.
+
+        Returns
+        -------
+        List[animation.FuncAnimation]
+            A list of FuncAnimation objects for each plotter.
+
+        """
         ani_list = []
         fig, ax, cax_container = self._ensure_ani_fig_exists()
 
@@ -521,6 +578,7 @@ class BasePlotterList:
         return ani_list
 
     def plot_show(self) -> None:
+        """Display the plot for all plotters."""
         plt.show()
 
 
