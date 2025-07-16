@@ -28,6 +28,7 @@ class BaseRaceClass:
         -------
         CommentedMap
             The ordered dictionary.
+
         """
         data = CommentedMap()
         for key in ordered_keys:
@@ -79,7 +80,9 @@ class State(BaseRaceClass):
         cthrustmass : Optional[float], default=None
             Collective thrust mass of the drone.
         euler : Optional[Union[List[float], np.ndarray]], default=None
-            Euler angles representing the orientation of the drone."""
+            Euler angles representing the orientation of the drone.
+
+        """
         self.pos = pos if isinstance(pos, list) else pos.tolist()
         self.vel = (
             [0.0, 0.0, 0.0]
@@ -109,11 +112,25 @@ class State(BaseRaceClass):
         )
 
     def to_dict(self) -> dict:
-        """Convert the state to a dictionary."""
+        """Convert the state to a dictionary.
+
+        Returns
+        -------
+        dict
+            The dictionary representation of the state.
+
+        """
         return vars(self)
 
     def to_ordered_dict(self) -> CommentedMap:
-        """Convert the state to an ordered dictionary."""
+        """Convert the state to an ordered dictionary.
+
+        Returns
+        -------
+        CommentedMap
+            The ordered dictionary representation of the state.
+
+        """
         ordered_keys = ["pos", "vel", "acc", "jer", "rot", "cthrustmass", "euler"]
         return super().to_ordered_dict(ordered_keys=ordered_keys, dict=self.to_dict())
 
@@ -126,6 +143,20 @@ class Gate(BaseRaceClass):
         stationary: bool,
         name: Optional[str] = None,
     ):
+        """Initialize a gate with a shape, position, and whether it is stationary.
+
+        Parameters
+        ----------
+        gate_shape : BaseShape
+            The shape of the gate.
+        position : Union[List[float], np.ndarray]
+            The position of the gate in 3D space.
+        stationary : bool
+            Whether the gate is stationary or not.
+        name : Optional[str], default=None
+            The name of the gate. If None, a default name will be generated.
+
+        """
         self.shape = gate_shape
         self.name = name
         self.position = position if isinstance(position, list) else position.tolist()
@@ -189,7 +220,14 @@ class Gate(BaseRaceClass):
         }
 
     def to_dict(self) -> dict:
-        """Convert the gate to a dictionary."""
+        """Convert the gate to a dictionary.
+
+        Returns
+        -------
+        dict
+            The dictionary representation of the gate.
+
+        """
         data = {
             **self.shape.get_shape_info(),
             "position": self.position,
@@ -200,19 +238,27 @@ class Gate(BaseRaceClass):
         return data
 
     def to_ordered_dict(self) -> CommentedMap:
-        """Convert the gate to an ordered dictionary."""
+        """Convert the gate to an ordered dictionary.
+
+        Returns
+        -------
+        CommentedMap
+            An ordered dictionary representation of the gate.
+
+        """
         ordered_keys = self.SHAPE_ORDER_KEYS[self.shape.type]
         if self.name is None:
             ordered_keys.remove("name")
         return super().to_ordered_dict(ordered_keys=ordered_keys, dict=self.to_dict())
 
-    def set_position(self, position: Union[List[float], np.ndarray]):
+    def set_position(self, position: Union[List[float], np.ndarray]) -> None:
         """Set the position of the gate.
 
         Parameters
         ----------
         position : Union[List[float], np.ndarray]
             The new position of the gate.
+
         """
         if self.stationary:
             raise ValueError("Cannot set position for a stationary gate.")
