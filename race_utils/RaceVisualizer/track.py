@@ -1,11 +1,27 @@
 import numpy as np
 import yaml
+from typing import List, Optional, Union
 
+import matplotlib.pyplot as plt
 from race_utils.RaceGenerator.RaceTrack import RaceTrack
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from mpl_toolkits.mplot3d import Axes3D
 
 
-def rpy_to_rotation_matrix(rpy):
+def rpy_to_rotation_matrix(rpy) -> np.ndarray:
+    """Convert roll, pitch, yaw angles to a rotation matrix.
+
+    Parameters
+    ----------
+    rpy : list or np.ndarray
+        Roll, pitch, yaw angles in degrees.
+
+    Returns
+    -------
+    np.ndarray
+        A 3x3 rotation matrix.
+
+    """
     r, p, y = np.array(rpy) * np.pi / 180
     cos, sin = np.cos, np.sin
     R = np.eye(3)
@@ -21,7 +37,32 @@ def rpy_to_rotation_matrix(rpy):
     return R
 
 
-def plot_track(ax, track_file, radius=None, width=None, height=None, margin=0):
+def plot_track(
+    ax: plt.Axes,
+    track_file: Union[str, RaceTrack],
+    radius: Optional[float] = None,
+    width: Optional[float] = None,
+    height: Optional[float] = None,
+    margin: float = 0,
+):
+    """Plot the race track on a 2D axis.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axis to plot on.
+    track_file : str or RaceTrack
+        The path to the track file or a RaceTrack object.
+    radius : float, optional
+        The radius for the waypoints. If None, use the track's radius.
+    width : float, optional
+        The width for the waypoints. If None, use the track's width.
+    height : float, optional
+        The height for the waypoints. If None, use the track's height.
+    margin : float, optional
+        The margin to apply to the waypoints. Default is 0.
+
+    """
     track = (
         track_file.to_dict()
         if isinstance(track_file, RaceTrack)
@@ -133,15 +174,37 @@ def plot_track(ax, track_file, radius=None, width=None, height=None, margin=0):
 
 
 def plot_track_3d(
-    ax,
-    track_file,
-    radius=None,
-    width=None,
-    height=None,
-    margin=0,
-    gate_color=None,
-    gate_alpha=0.1,
+    ax: Axes3D,
+    track_file: Union[str, RaceTrack],
+    radius: Optional[float] = None,
+    width: Optional[float] = None,
+    height: Optional[float] = None,
+    margin: float = 0,
+    gate_color: Optional[str] = None,
+    gate_alpha: float = 0.1,
 ):
+    """Plot the race track on a 3D axis.
+
+    Parameters
+    ----------
+    ax : mpl_toolkits.mplot3d.Axes3D
+        The 3D axis to plot on.
+    track_file : str or RaceTrack
+        The path to the track file or a RaceTrack object.
+    radius : float, optional
+        The radius for the waypoints. If None, use the track's radius.
+    width : float, optional
+        The width for the waypoints. If None, use the track's width.
+    height : float, optional
+        The height for the waypoints. If None, use the track's height.
+    margin : float, optional
+        The margin to apply to the waypoints. Default is 0.
+    gate_color : str, optional
+        The color of the gates. Default is "r" (red).
+    gate_alpha : float, optional
+        The alpha transparency of the gates. Default is 0.1.
+
+    """
     if gate_color is None:
         gate_color = "r"
 
@@ -166,14 +229,14 @@ def plot_track_3d(
 
 
 def plot_gate_3d(
-    ax,
-    gates,
-    radius=None,
-    width=None,
-    height=None,
-    margin=0,
-    gate_color=None,
-    gate_alpha=0.1,
+    ax: Axes3D,
+    gates: Union[dict, List[dict]],
+    radius: Optional[float] = None,
+    width: Optional[float] = None,
+    height: Optional[float] = None,
+    margin: float = 0,
+    gate_color: Optional[str] = None,
+    gate_alpha: float = 0.1,
 ):
     """Plot a single gate in 3D.
 
