@@ -4,17 +4,58 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.colors import to_rgba
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from matplotlib.backend_bases import RendererBase
 
 
 class Arrow3D(FancyArrowPatch):
     """Class to draw 3D arrows in matplotlib"""
 
-    def __init__(self, x, y, z, dx, dy, dz, *args, **kwargs):
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        z: float,
+        dx: float,
+        dy: float,
+        dz: float,
+        *args: tuple,
+        **kwargs: dict,
+    ):
+        """Initialize the 3D arrow.
+
+        Parameters
+        ----------
+        x : float
+            The x-coordinate of the arrow's start point.
+        y : float
+            The y-coordinate of the arrow's start point.
+        z : float
+            The z-coordinate of the arrow's start point.
+        dx : float
+            The change in x-coordinate (length of the arrow in x).
+        dy : float
+            The change in y-coordinate (length of the arrow in y).
+        dz : float
+            The change in z-coordinate (length of the arrow in z).
+        *args : tuple
+            Additional positional arguments.
+        **kwargs : dict
+            Additional keyword arguments.
+
+        """
         super().__init__((0, 0), (0, 0), *args, **kwargs)
         self._xyz = (x, y, z)
         self._dxdydz = (dx, dy, dz)
 
-    def draw(self, renderer):
+    def draw(self, renderer: RendererBase) -> None:
+        """Draw the arrow.
+
+        Parameters
+        ----------
+        renderer : RendererBase
+            The renderer to use for drawing.
+
+        """
         x1, y1, z1 = self._xyz
         dx, dy, dz = self._dxdydz
         x2, y2, z2 = (x1 + dx, y1 + dy, z1 + dz)
@@ -23,7 +64,15 @@ class Arrow3D(FancyArrowPatch):
         self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
         super().draw(renderer)
 
-    def do_3d_projection(self, renderer=None):
+    def do_3d_projection(self) -> float:
+        """Project the arrow in 3D space.
+
+        Returns
+        -------
+        float
+            The minimum z-coordinate of the arrow.
+
+        """
         x1, y1, z1 = self._xyz
         dx, dy, dz = self._dxdydz
         x2, y2, z2 = (x1 + dx, y1 + dy, z1 + dz)
@@ -37,12 +86,21 @@ class BaseDrawer:
     """Base class for all drawers in the RaceVisualizer."""
 
     def __init__(self, ax: Axes3D, show_body_axis: bool = False):
-        """Initialize the BaseDrawer."""
+        """Initialize the BaseDrawer.
+
+        Parameters
+        ----------
+        ax : Axes3D
+            The 3D axes to draw on.
+        show_body_axis : bool
+            Whether to show the body axis of the drone.
+
+        """
         self.ax = ax
         self.show_body_axis = show_body_axis
         self.total_artists = []
 
-    def draw(self):
+    def draw(self) -> None:
         """Draw the object."""
         raise NotImplementedError("This method should be overridden by subclasses.")
 
