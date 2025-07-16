@@ -30,6 +30,7 @@ class RaceTrack(BaseRaceClass):
             The end state of the race track.
         race_name : Optional[str]
             The name of the race track. If None, a default name will be used.
+
         """
         self.initState = init_state
         self.endState = end_state
@@ -47,6 +48,7 @@ class RaceTrack(BaseRaceClass):
             The gate to add to the race track.
         gate_name : Optional[str]
             The name of the gate. If None, a default name will be generated.
+
         """
         if gate_name is None:
             self.gate_num += 1
@@ -72,6 +74,7 @@ class RaceTrack(BaseRaceClass):
         -------
         Union[dict, CommentedMap]
             The dictionary representation of the gates.
+
         """
         gate_dict = CommentedMap() if ordered else {}
         for gate_info in self.gate_sequence:
@@ -88,6 +91,7 @@ class RaceTrack(BaseRaceClass):
         -------
         dict
             A dictionary representation of the race track.
+
         """
         data = {
             "initState": self.initState.to_dict(),
@@ -104,6 +108,7 @@ class RaceTrack(BaseRaceClass):
         -------
         CommentedMap
             An ordered dictionary representation of the race track.
+
         """
         data = CommentedMap()
         data["initState"] = self.initState.to_ordered_dict()
@@ -140,6 +145,7 @@ class RaceTrack(BaseRaceClass):
         -------
         bool
             True if the file was saved successfully, False otherwise.
+
         """
         if self.gate_sequence == []:
             Warning("No gate has been added! The race track will not be saved.")
@@ -200,6 +206,7 @@ class RaceTrack(BaseRaceClass):
         load_dir : Optional[Union[os.PathLike, str]]
             The directory where the YAML file is located. If None, it will not load any file
             and will not change the current race track.
+
         """
         gate_param_list = ["type", "name", "position", "stationary"]
         load_dir = os.fspath(load_dir)
