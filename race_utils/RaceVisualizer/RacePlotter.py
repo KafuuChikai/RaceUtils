@@ -1445,7 +1445,10 @@ class RacePlotter(BasePlotter):
         # plot the track
         if self.track_file is not None:
             if moving_gate_ps is not None:
-                track = self.track_file.to_dict()
+                if isinstance(self.track_file, RaceTrack):
+                    track = self.track_file.to_dict()
+                else:
+                    track = yaml.safe_load(open(self.track_file).read())
                 gates = []
                 gate_counter = 0
                 for gate_id in track["orders"]:
