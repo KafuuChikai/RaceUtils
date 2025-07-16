@@ -593,6 +593,26 @@ class RacePlotter(BasePlotter):
         crash_kwargs: dict = {},
         moving_gate_data: Optional[np.ndarray] = None,
     ):
+        """Initialize the RacePlotter class.
+
+        Parameters
+        ----------
+        traj_file : Union[os.PathLike, str, np.ndarray]
+            The trajectory file to load, which can be a path to a CSV file or a numpy array.
+        track_file : Union[os.PathLike, str, RaceTrack], optional
+            The track file to load, which can be a path to a YAML file or a RaceTrack object.
+        wpt_path : Optional[Union[os.PathLike, str]], optional
+            The path to the waypoints file, if any.
+        end_time : Optional[int], optional
+            The end time of the trajectory, if known.
+        crash_effect : Optional[bool], optional
+            If True, enables crash effects in the visualization (default is False).
+        crash_kwargs : dict, optional
+            Additional keyword arguments for crash effects, such as `crash_radius`, `crash_color`, etc.
+        moving_gate_data : Optional[np.ndarray], optional
+            The moving gate data, if any, as a numpy array with columns for time and position.
+
+        """
         super().__init__(
             traj_file=traj_file,
             track_file=track_file,
@@ -604,6 +624,19 @@ class RacePlotter(BasePlotter):
         self.crash_kwargs = crash_kwargs
 
     def estimate_tangents(self, ps: np.ndarray) -> np.ndarray:
+        """Estimate the tangents of the trajectory points.
+
+        Parameters
+        ----------
+        ps : np.ndarray
+            An array of shape (N, 3) representing the trajectory points in 3D space.
+
+        Returns
+        -------
+        np.ndarray
+            An array of shape (N, 3) representing the normalized tangents at each trajectory point.
+
+        """
         # compute tangents
         dp_x = np.gradient(ps[:, 0])
         dp_y = np.gradient(ps[:, 1])
@@ -621,11 +654,47 @@ class RacePlotter(BasePlotter):
         outer_radius: float,
         rate: float,
     ) -> np.ndarray:
+        """Compute a sigmoid function to determine the tube radius based on distance from waypoints.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            An array of distances from waypoints.
+        bias : float
+            The bias value for the sigmoid function, which shifts the curve along the x-axis.
+        inner_radius : float
+            The inner radius of the tube.
+        outer_radius : float
+            The outer radius of the tube.
+        rate : float
+            The rate of change for the sigmoid function, controlling how quickly it transitions from inner to outer radius.
+
+        Returns
+        -------
+        np.ndarray
+            An array of tube radii computed using the sigmoid function.
+
+        """
         return inner_radius + outer_radius * (1 / (1 + np.exp(-rate * (x - bias))))
 
     def get_line_tube(
         self, ps: np.ndarray, tube_radius: float
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Create a tube around the trajectory points.
+
+        Parameters
+        ----------
+        ps : np.ndarray
+            An array of shape (N, 3) representing the trajectory points in 3D space.
+        tube_radius : float
+            The radius of the tube to be created around the trajectory.
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray, np.ndarray]
+            Three arrays representing the x, y, and z coordinates of the tube points.
+
+        """
         # create tube parameters
         num_points = len(ps)
         theta = np.linspace(0, 2 * np.pi, 20)
@@ -674,6 +743,31 @@ class RacePlotter(BasePlotter):
         rate: float,
         scale: float = 1.0,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Create a tube around the trajectory points using a sigmoid function to determine the radius.
+
+        Parameters
+        ----------
+        ts : np.ndarray
+            An array of timestamps corresponding to the trajectory points.
+        ps : np.ndarray
+            An array of shape (N, 3) representing the trajectory points in 3D space.
+        bias : float
+            The bias value for the sigmoid function, which shifts the curve along the x-axis.
+        inner_radius : float
+            The inner radius of the tube.
+        outer_radius : float
+            The outer radius of the tube.
+        rate : float
+            The rate of change for the sigmoid function, controlling how quickly it transitions from inner to outer radius.
+        scale : float, optional
+            A scaling factor for the tube radius (default is 1.0).
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray, np.ndarray]
+            Three arrays representing the x, y, and z coordinates of the tube points.
+
+        """
         if self.wpt_path is None:
             raise ValueError("wpt_path is not provided.")
         with open(self.wpt_path, "r") as file:
@@ -748,7 +842,43 @@ class RacePlotter(BasePlotter):
         tube_color: Optional[str] = None,
         alpha: float = 0.01,
         tube_rate: float = 6,
-    ):
+    ) -> None:
+        """Plot the trajectory in 2D.
+
+        Parameters
+        ----------
+        cmap : Colormap, optional
+            The colormap to use for the speed visualization (default is plt.cm.winter.reversed()).
+        save_fig : bool, optional
+            If True, saves the figure to a file (default is False).
+        dpi : int, optional
+            The resolution of the saved figure in dots per inch (default is 300).
+        save_path : Union[os.PathLike, str], optional
+            The directory where the figure will be saved (default is None).
+        fig_name : Optional[str], optional
+            The name of the figure file (default is None, which will use "togt_traj.png").
+        fig_title : Optional[str], optional
+            The title of the figure (default is None).
+        radius : Optional[float], optional
+            The radius of the tube to be plotted (default is None, which will use the default radius).
+        width : Optional[float], optional
+            The width of the plot (default is None, which will use the default width).
+        height : Optional[float], optional
+            The height of the plot (default is None, which will use the default height).
+        margin : Optional[float], optional
+            The margin around the plot (default is None, which will use the default margin).
+        draw_tube : bool, optional
+            If True, draws a tube around the trajectory (default is False).
+        sig_tube : bool, optional
+            If True, uses a sigmoid function to determine the tube radius (default is False).
+        tube_color : Optional[str], optional
+            The color of the tube (default is None, which will use "purple").
+        alpha : float, optional
+            The transparency of the tube (default is 0.01).
+        tube_rate : float, optional
+            The rate of change for the sigmoid function used to determine the tube radius (default is 6).
+
+        """
         self._ensure_2d_fig_exists()
         fig = self._fig_2d
         ax = self.ax_2d
@@ -813,7 +943,33 @@ class RacePlotter(BasePlotter):
         inner_radius: float = 0.5,
         outer_radius: float = 2.0,
         rate: float = 6,
-    ):
+    ) -> None:
+        """Plot a tube around the trajectory in 2D.
+
+        Parameters
+        ----------
+        scale : float, optional
+            A scaling factor for the tube radius (default is 1.0).
+        sig_tube : bool, optional
+            If True, uses a sigmoid function to determine the tube radius (default is False).
+        tube_color : Optional[str], optional
+            The color of the tube (default is None, which will use "purple").
+        alpha : float, optional
+            The transparency of the tube (default is 0.01).
+        tube_edge_color : Optional[str], optional
+            The edge color of the tube (default is None, which will use the same color as `tube_color`).
+        tube_radius : float, optional
+            The radius of the tube to be plotted (default is 1.0).
+        bias : float, optional
+            The bias value for the sigmoid function, which shifts the curve along the x-axis (default is 1.0).
+        inner_radius : float, optional
+            The inner radius of the tube (default is 0.5).
+        outer_radius : float, optional
+            The outer radius of the tube (default is 2.0).
+        rate : float, optional
+            The rate of change for the sigmoid function, controlling how quickly it transitions from inner to outer radius (default is 6).
+
+        """
         self._ensure_2d_fig_exists()
         ax = self.ax_2d
         ts = self.ts
@@ -875,7 +1031,49 @@ class RacePlotter(BasePlotter):
         gate_alpha: float = 0.1,
         tube_rate: float = 6,
         shade: bool = True,
-    ):
+    ) -> None:
+        """Plot the trajectory in 3D.
+
+        Parameters
+        ----------
+        cmap : Colormap, optional
+            The colormap to use for the speed visualization (default is plt.cm.winter.reversed()).
+        save_fig : bool, optional
+            If True, saves the figure to a file (default is False).
+        dpi : int, optional
+            The resolution of the saved figure in dots per inch (default is 300).
+        save_path : Union[os.PathLike, str], optional
+            The directory where the figure will be saved (default is None).
+        fig_name : Optional[str], optional
+            The name of the figure file (default is None, which will use "togt_traj.png").
+        fig_title : Optional[str], optional
+            The title of the figure (default is None).
+        radius : Optional[float], optional
+            The radius of the tube to be plotted (default is None, which will use the default radius).
+        width : Optional[float], optional
+            The width of the plot (default is None, which will use the default width).
+        height : Optional[float], optional
+            The height of the plot (default is None, which will use the default height).
+        margin : Optional[float], optional
+            The margin around the plot (default is None, which will use the default margin).
+        draw_tube : bool, optional
+            If True, draws a tube around the trajectory (default is False).
+        sig_tube : bool, optional
+            If True, uses a sigmoid function to determine the tube radius (default is False).
+        gate_color : Optional[str], optional
+            The color of the gate (default is None, which will use "purple").
+        tube_color : Optional[str], optional
+            The color of the tube (default is None, which will use "purple").
+        alpha : float, optional
+            The transparency of the tube (default is 0.01).
+        gate_alpha : float, optional
+            The transparency of the gate (default is 0.1).
+        tube_rate : float, optional
+            The rate of change for the sigmoid function used to determine the tube radius (default is 6).
+        shade : bool, optional
+            If True, applies shading to the tube surface (default is True).
+
+        """
         self._ensure_3d_fig_exists()
         fig = self._fig_3d
         ax = self.ax_3d
@@ -981,7 +1179,35 @@ class RacePlotter(BasePlotter):
         outer_radius: float = 2.0,
         rate: float = 6,
         shade: bool = True,
-    ):
+    ) -> None:
+        """Plot a tube around the trajectory in 3D.
+
+        Parameters
+        ----------
+        scale : float, optional
+            A scaling factor for the tube radius (default is 1.0).
+        sig_tube : bool, optional
+            If True, uses a sigmoid function to determine the tube radius (default is False).
+        tube_color : Optional[str], optional
+            The color of the tube (default is None, which will use "purple").
+        alpha : float, optional
+            The transparency of the tube (default is 0.01).
+        tube_edge_color : Optional[str], optional
+            The edge color of the tube (default is None, which will use the same color as `tube_color`).
+        tube_radius : float, optional
+            The radius of the tube to be plotted (default is 1.0).
+        bias : float, optional
+            The bias value for the sigmoid function, which shifts the curve along the x-axis (default is 1.0).
+        inner_radius : float, optional
+            The inner radius of the tube (default is 0.5).
+        outer_radius : float, optional
+            The outer radius of the tube (default is 2.0).
+        rate : float, optional
+            The rate of change for the sigmoid function, controlling how quickly it transitions from inner to outer radius (default is 6).
+        shade : bool, optional
+            If True, applies shading to the tube surface (default is True).
+
+        """
         self._ensure_3d_fig_exists()
         ax = self.ax_3d
         ts = self.ts
@@ -1043,22 +1269,46 @@ class RacePlotter(BasePlotter):
 
         Parameters
         ----------
-        positions : np.ndarray
-            Array of shape (time_steps, 3) representing the positions.
-        attitudes : np.ndarray, optional
-            Array of shape (time_steps, 3) or (time_steps, 4) representing the attitudes.
-            Can be Euler angles or quaternions. If None, zero attitude is used.
-        save_path : str, optional
-            Path to save the animation. If None, the animation is displayed.
+        save_path : Union[os.PathLike, str], optional
+            The directory where the animation will be saved (default is None).
+        video_name : str, optional
+            The name of the video file (default is "drone_animation.mp4").
         fps : int, optional
-            Frames per second for the animation, by default 20.
+            The frames per second for the animation (default is 20).
         dpi : int, optional
-            Dots per inch for saving the animation, by default 200.
+            The resolution of the saved video in dots per inch (default is 200).
+        drone_kwargs : dict, optional
+            Additional keyword arguments for the drone visualization, such as `arm_length`, `color`, etc.
+        cmap : Colormap, optional
+            The colormap to use for the speed visualization (default is plt.cm.winter.reversed()).
+        traj_history : float, optional
+            The history of the trajectory to show in seconds (default is 0.0, which means no history).
+        track_kwargs : dict, optional
+            Additional keyword arguments for the track visualization, such as `gate_color`, `gate_alpha`, etc.
+        follow_drone : bool, optional
+            If True, the camera will follow the drone (default is False).
+        hide_background : bool, optional
+            If True, hides the background of the plot (default is False).
+        hide_ground : bool, optional
+            If True, hides the ground plane in the plot (default is False).
+        flash_gate : bool, optional
+            If True, flashes the gate during the animation (default is False).
+        plot_colorbar : bool, optional
+            If True, plots the colorbar for speed visualization (default is True).
+        adjest_colorbar : bool, optional
+            If True, adjusts the colorbar to fit the speed range (default is True).
+        show_bar_info : bool, optional
+            If True, shows the colorbar information (default is True).
+        show_title : bool, optional
+            If True, shows the title of the figure (default is True).
+        show_time : bool, optional
+            If True, shows the dynamic time text in the figure (default is True).
 
         Returns
         -------
-        animation : matplotlib.animation.FuncAnimation
+        animation.FuncAnimation
             The created animation object.
+
         """
         self._ensure_ani_fig_exists()
         fig = self._fig_ani
@@ -1338,6 +1588,14 @@ class RacePlotter(BasePlotter):
 
         # the initialization function
         def init():
+            """Initialize the animation.
+
+            Returns
+            -------
+            List[Artist]
+                A list of artists to be drawn in the initial frame.
+
+            """
             for line in lines:
                 line.remove() if line in ax.lines else None
             lines.clear()
@@ -1385,6 +1643,19 @@ class RacePlotter(BasePlotter):
 
         # the update function for each frame
         def update(frame):
+            """Update the animation for each frame.
+
+            Parameters
+            ----------
+            frame : int
+                The current frame number.
+
+            Returns
+            -------
+            List[Artist]
+                A list of artists to be drawn in the current frame.
+
+            """
             # Update the time text with the current simulation time
             if show_time:
                 time_text.set_text(f"Time: {(frame / fps):.2f}s")
