@@ -879,7 +879,7 @@ class RacePlotter(BasePlotter):
         drone_kwargs: dict = {},
         cmap: Colormap = plt.cm.winter.reversed(),
         traj_history: float = 0.0,
-        track_kargs: dict = {},
+        track_kwargs: dict = {},
         follow_drone: bool = False,
         hide_background: bool = False,
         hide_ground: bool = False,
@@ -1092,13 +1092,13 @@ class RacePlotter(BasePlotter):
                         artists = plot_gate_3d(
                             ax,
                             gates_to_plot,  # Pass the filtered list
-                            **track_kargs,
+                            **track_kwargs,
                         )
                 else:
                     plot_track_3d(
                         ax,
                         self.track_file,
-                        **track_kargs,
+                        **track_kwargs,
                     )
             else:
                 track = self.track_file.to_dict()
@@ -1408,7 +1408,7 @@ class RacePlotter(BasePlotter):
                     artists = plot_gate_3d(
                         ax,
                         gates[update.next_id],
-                        **track_kargs,
+                        **track_kwargs,
                     )
                     gate_artists.extend(artists)
                     if (
@@ -1454,7 +1454,7 @@ class RacePlotter(BasePlotter):
                     artists = plot_gate_3d(
                         ax,
                         gates_to_plot,  # Pass the filtered list
-                        **track_kargs,
+                        **track_kwargs,
                     )
                     gate_artists.extend(artists)
 
