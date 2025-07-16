@@ -169,3 +169,9 @@ class Gate(BaseRaceClass):
         if self.name is None:
             ordered_keys.remove("name")
         return super().to_ordered_dict(ordered_keys=ordered_keys, dict=self.to_dict())
+
+    def set_position(self, position: Union[List[float], np.ndarray]):
+        """Set the position of the gate."""
+        if self.stationary:
+            raise ValueError("Cannot set position for a stationary gate.")
+        self.position = position if isinstance(position, list) else position.tolist()
