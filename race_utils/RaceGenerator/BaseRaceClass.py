@@ -15,6 +15,20 @@ class BaseRaceClass:
         pass
 
     def to_ordered_dict(self, ordered_keys: List[str], dict: dict) -> CommentedMap:
+        """Convert a dictionary to an ordered dictionary.
+
+        Parameters
+        ----------
+        ordered_keys : List[str]
+            The keys in the order they should appear.
+        dict : dict
+            The dictionary to convert.
+        
+        Returns
+        -------
+        CommentedMap
+            The ordered dictionary.
+        """
         data = CommentedMap()
         for key in ordered_keys:
             value = dict[key]
@@ -48,6 +62,24 @@ class State(BaseRaceClass):
             Union[List[float], np.ndarray]
         ] = None,  # (3,) - euler angles [roll, pitch, yaw]
     ):
+        """Initialize a state with position, velocity, acceleration, jerk, rotation, collective thrust mass, and euler angles.
+        
+        Parameters
+        ----------
+        pos : Union[List[float], np.ndarray]
+            Position of the drone in 3D space.
+        vel : Optional[Union[List[float], np.ndarray]], default=None
+            Velocity of the drone in 3D space.
+        acc : Optional[Union[List[float], np.ndarray]], default=None
+            Acceleration of the drone in 3D space.
+        jer : Optional[Union[List[float], np.ndarray]], default=None
+            Jerk of the drone in 3D space.
+        rot : Optional[Union[List[float], np.ndarray]], default=None
+            Quaternion representing the rotation of the drone.
+        cthrustmass : Optional[float], default=None
+            Collective thrust mass of the drone.
+        euler : Optional[Union[List[float], np.ndarray]], default=None
+            Euler angles representing the orientation of the drone."""
         self.pos = pos if isinstance(pos, list) else pos.tolist()
         self.vel = (
             [0.0, 0.0, 0.0]
@@ -76,10 +108,12 @@ class State(BaseRaceClass):
             else (euler if isinstance(euler, list) else euler.tolist())
         )
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
+        """Convert the state to a dictionary."""
         return vars(self)
 
     def to_ordered_dict(self) -> CommentedMap:
+        """Convert the state to an ordered dictionary."""
         ordered_keys = ["pos", "vel", "acc", "jer", "rot", "cthrustmass", "euler"]
         return super().to_ordered_dict(ordered_keys=ordered_keys, dict=self.to_dict())
 
@@ -155,6 +189,7 @@ class Gate(BaseRaceClass):
         }
 
     def to_dict(self) -> dict:
+        """Convert the gate to a dictionary."""
         data = {
             **self.shape.get_shape_info(),
             "position": self.position,
@@ -165,13 +200,20 @@ class Gate(BaseRaceClass):
         return data
 
     def to_ordered_dict(self) -> CommentedMap:
+        """Convert the gate to an ordered dictionary."""
         ordered_keys = self.SHAPE_ORDER_KEYS[self.shape.type]
         if self.name is None:
             ordered_keys.remove("name")
         return super().to_ordered_dict(ordered_keys=ordered_keys, dict=self.to_dict())
 
     def set_position(self, position: Union[List[float], np.ndarray]):
-        """Set the position of the gate."""
+        """Set the position of the gate.
+        
+        Parameters
+        ----------
+        position : Union[List[float], np.ndarray]
+            The new position of the gate.
+        """
         if self.stationary:
             raise ValueError("Cannot set position for a stationary gate.")
         self.position = position if isinstance(position, list) else position.tolist()
