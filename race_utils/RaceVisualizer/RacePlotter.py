@@ -440,6 +440,7 @@ class BasePlotterList:
         self,
         track_file: Union[os.PathLike, str, RaceTrack],
         index: Optional[list] = None,
+        plot_track_once: bool = False,
     ) -> None:
         """Load a track file into the plotters.
 
@@ -453,8 +454,11 @@ class BasePlotterList:
         """
         if index is None:
             index = list(range(self.num_plotters))
-        for i in index:
-            self.plotters[i].load_track(track_file)
+        if plot_track_once:
+            self.plotters[0].load_track(track_file)
+        else:
+            for i in index:
+                self.plotters[i].load_track(track_file)
 
     def plot(self, **input_kwargs) -> None:
         """Plot the trajectories of all plotters in 2D.

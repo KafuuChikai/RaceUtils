@@ -296,7 +296,6 @@ def plot_gate_3d(
                 if isinstance(gate_color, list)
                 else gate_color
             )
-            print("plotting sphere with color:", gate_color)
             surface = ax.plot_surface(
                 x, y, z, color=plot_gate_color, alpha=gate_alpha, edgecolor="none"
             )
