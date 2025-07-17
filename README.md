@@ -70,8 +70,8 @@ Create animations for flight details:
 
 |  |  |  |
 | :---------- | :---------- | :---------- |
-| <img src="docs/animations/Star_5_single_drone1_3d.png" /> | <img src="docs/animations/Star_5_single_drone1_3d.png" /> | <video src="https://github.com/user-attachments/assets/8e6eb8d0-df78-43c4-b1b2-a489ab879693" /> |
-| <img src="docs/animations/UZH_single_drone1_3d.png" /> | <img src="docs/animations/UZH_single_drone1_3d.png" /> | <video src="https://github.com/user-attachments/assets/2e0c4502-95e2-4b02-94cf-f87b21c82db0" /> |
+| <img src="docs/animations/Face_2uav_drone1_3d.png" /> | <img src="docs/animations/Face_2uav_drone2_3d.png" /> | <video src="https://github.com/user-attachments/assets/8e6eb8d0-df78-43c4-b1b2-a489ab879693" /> |
+| <img src="docs/animations/Face_2uav_move_drone1_3d.png" /> | <img src="docs/animations/Face_2uav_move_drone2_3d.png" /> | <video src="https://github.com/user-attachments/assets/2e0c4502-95e2-4b02-94cf-f87b21c82db0" /> |
 
 ## Tools
 
