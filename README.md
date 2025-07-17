@@ -68,10 +68,10 @@ Plot 3D trajectories and visualize them with a tube.
 
 Create animations for flight details:
 
-|  |  |
-| :---------- | :---------- |
-| <img src="docs/animations/Star_5_single_drone1_3d.png" /> | <video src="https://github.com/user-attachments/assets/3b0836a2-5f65-41a6-bb40-023390bcd4c4" /> |
-| <img src="docs/animations/UZH_single_drone1_3d.png" /> | <video src="https://github.com/user-attachments/assets/e59134fe-9ab4-4757-a27d-81a9c0fb0b16" /> |
+|  |  |  |
+| :---------- | :---------- | :---------- |
+| <img src="docs/animations/Star_5_single_drone1_3d.png" /> | <img src="docs/animations/Star_5_single_drone1_3d.png" /> | <video src="https://github.com/user-attachments/assets/8e6eb8d0-df78-43c4-b1b2-a489ab879693" /> |
+| <img src="docs/animations/UZH_single_drone1_3d.png" /> | <img src="docs/animations/UZH_single_drone1_3d.png" /> | <video src="https://github.com/user-attachments/assets/2e0c4502-95e2-4b02-94cf-f87b21c82db0" /> |
 
 ## Tools
 
